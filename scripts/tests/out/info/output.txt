@@ -1,0 +1,34 @@
+
+   Sites: CamCAN
+   Metrics: md
+   Mean Age: 52.24
+
+                  GlobalInfos      Categories         DetailInfos
+Site : CamCAN                                                    
+Number of Subject         441    N Unique Sid                 441
+Age Range             18 - 87          Age by       HC(age=18-87)
+Disease                  [HC]     Disease (n)           HC(n=441)
+Handedness             [1, 2]  Handedness (n)  1(n=214), 2(n=227)
+Sexes                  [1, 2]       Sexes (n)   1(n=405), 2(n=36)
+
+Number of Bundles: 45
+      Left_bundles    Right_bundles        Bilaretal_bundles
+0   left_ventricle         mni_AF_R                   mni_AC
+1         mni_AF_L        mni_AST_R                   mni_CC
+2        mni_AST_L        mni_CST_R                mni_CCMid
+3        mni_CST_L          mni_C_R      mni_CC_ForcepsMajor
+4          mni_C_L        mni_FPT_R      mni_CC_ForcepsMinor
+5        mni_FPT_L        mni_F_L_R  mni_IIT_mask_skeletonFA
+6        mni_F_L_R        mni_ICP_R                  mni_MCP
+7        mni_ICP_L       mni_IFOF_R                  mni_SCP
+8       mni_IFOF_L        mni_ILF_R                         
+9        mni_ILF_L         mni_ML_R                         
+10        mni_ML_L       mni_MdLF_R                         
+11      mni_MdLF_L        mni_OPT_R                         
+12       mni_OPT_L         mni_OR_R                         
+13        mni_OR_L        mni_PPT_R                         
+14       mni_PPT_L        mni_SLF_R                         
+15       mni_SLF_L        mni_STT_R                         
+16       mni_STT_L         mni_UF_R                         
+17        mni_UF_L        mni_VOF_R                         
+18       mni_VOF_L  right_ventricle                         
