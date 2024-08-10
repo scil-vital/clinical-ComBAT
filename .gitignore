@@ -1,0 +1,8 @@
+DONNES
+REF
+RES
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+commands
+same_res_test.sh
