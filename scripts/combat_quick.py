@@ -5,27 +5,18 @@ Script to compute and apply the transfer function from a moving site to a refere
 This script calls combat_quick_fit.py, combat_quick_apply.py, combat_visualize_model.py and
 combat_visualize_harmonization.py. The exact commands are printed in the terminal.
 
-Harmonization methods:
-    clinic (default):
-            uses a priori from the reference site to fit the moving site
-            (Beta_mov, variance)
+Harmonization method:
     vanilla:
             uses both moving and reference data to fit the covariates regression parameters
             (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
-    pairwise:
-            uses only the moving data to to fit the covariates regression parameters
-            (Beta_mov)
 
-NOTE: the harmonization parameters (regul, degree, nu, tau) are preset according to the
-      harmonization method chosen. See default settings.
+NOTE: the harmonization parameters (regul, degree) are preset. See default settings.
       If the reference site is MRC-CBSU_Siemens_3T_2, it's renamed CamCAN in the figures.
 
-Examples:
-# Harmonized with the Clinic method with un polynomial degree of 2
-combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
+Example:
 
 # Harmonized with the Vanilla method (i.e. Fortin et al., (2017) method)
-combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method vanilla
+combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz
 
 """
 import argparse
@@ -70,13 +61,6 @@ def _build_arg_parser():
     )
 
     p.add_argument(
-        "-m",
-        "--method",
-        default="clinic",
-        choices=["vanilla", "pairwise", "clinic"],
-        help="Harmonization method.",
-    )
-    p.add_argument(
         "--ignore_sex",
         action="store_true",
         help="If set, ignore the sex covariate in the data.",
@@ -98,43 +82,17 @@ def _build_arg_parser():
         help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
     )
     p.add_argument(
-        "--robust",
-        action="store_true",
-        help="If set, use combat robust. This tries "
-        + "identifying/rejecting non-HC subjects.",
-    )
-    p.add_argument(
         "--regul_ref",
         type=float,
         default=0,
         help="Regularization parameter for the reference site data. [%(default)s]",
     )
     p.add_argument(
-        "--regul_mov",
-        type=float,
-        help="Regularization parameter for the moving site data. Set to '-1' for automatic tuning "
-        + "[default=0 for vanilla and pairwise; -1 for clinic]",
-    )
-    p.add_argument(
         "--degree",
         type=int,
-        help="Degree of the polynomial fit in Combat. "
-        + "[default=1 for vanilla and pairwise; 2 for clinic].",
+        help="Degree of the polynomial fit in Combat. [%(default)s]",
     )
-    p.add_argument(
-        "--nu",
-        type=float,
-        default=5,
-        help="Combat Clinic hyperparameter for the standard deviation estimation of the moving "
-        + "site data. It must be >=0. [%(default)s]",
-    )
-    p.add_argument(
-        "--tau",
-        type=float,
-        default=2,
-        help="Combat Clinic hyperparameter for the covariate fit of the moving site data. "
-        "It must be >= 1. [%(default)s]",
-    )
+
     p.add_argument(
         "--bundles",
         nargs="+",
@@ -182,8 +140,6 @@ def main():
             + ref_data.site.unique()[0]
             + "."
             + ref_data.metric.unique()[0]
-            + "."
-            + args.method
             + ".model.csv"
         )
     # output data filename
@@ -192,8 +148,6 @@ def main():
             mov_data.site.unique()[0]
             + "."
             + ref_data.metric.unique()[0]
-            + "."
-            + args.method
             + ".csv.gz"
         )
     ###########
@@ -216,19 +170,11 @@ def main():
         + args.out_dir
         + " --output_model_filename "
         + args.output_model_filename
-        + " --method "
-        + args.method
         + " --regul_ref "
         + str(args.regul_ref)
-        + " --nu "
-        + str(args.nu)
-        + " --tau "
-        + str(args.tau)
         + " -v "
         + str(args.verbose)
     )
-    if args.regul_mov:
-        cmd += " --regul_mov " + str(args.regul_mov)
     if args.degree:
         cmd += " --degree " + str(args.degree)
     if args.ignore_sex:
@@ -239,8 +185,6 @@ def main():
         cmd += " --limit_age_range"
     if args.no_empirical_bayes:
         cmd += " --no_empirical_bayes"
-    if args.robust:
-        cmd += " --robust"
     if args.overwrite:
         cmd += " -f"
     logging.info(cmd)

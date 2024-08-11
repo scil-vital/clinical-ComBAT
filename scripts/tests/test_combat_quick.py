@@ -24,14 +24,13 @@ def test_quick_combat_vanilla():
         + "CamCAN.md.raw.csv.gz "
         + data_path
         + "ShamCamCAN.md.raw.csv.gz "
-        + "-m vanilla "
         + "--out_dir "
         + out
     )
     subprocess.call(cmd, shell=True)
 
-    model = os.path.join(out, "ShamCamCAN-CamCAN.md.vanilla.model.csv")
-    data = os.path.join(out, "ShamCamCAN.md.vanilla.csv.gz")
+    model = os.path.join(out, "ShamCamCAN-CamCAN.md.model.csv")
+    data = os.path.join(out, "ShamCamCAN.md.csv.gz")
     fig1 = os.path.join(
         out, "AgeCurve_CamCAN-ShamCamCAN_raw_md_mniIITmaskskeletonFA.png"
     )
@@ -41,7 +40,7 @@ def test_quick_combat_vanilla():
     fig3 = os.path.join(
         out, "DataModels_CamCAN-ShamCamCAN_vanilla_md_mniIITmaskskeletonFA.png"
     )
-    dist1 = os.path.join(out, "ShamCamCAN.md.vanilla.bhattacharrya.txt")
+    dist1 = os.path.join(out, "ShamCamCAN.md.bhattacharrya.txt")
     dist2 = os.path.join(out, "ShamCamCAN.md.raw.bhattacharrya.txt")
 
     npt.assert_(os.path.exists(model), msg="Model file not generated.")
@@ -71,133 +70,6 @@ def test_quick_combat_vanilla():
     a = pd.read_csv(data)["mean"].to_numpy()
     b = pd.read_csv(data_)["mean"].to_numpy()
     npt.assert_array_almost_equal(a, b)
-
-
-def test_quick_combat_pairwise():
-    folder = pathlib.Path(clinical_combat.__file__).resolve().parent.parent
-    data_path = os.path.join(folder, "docs/data/")
-
-    out = os.path.join(folder, "scripts/tests/out/QuickCombat_pairwise")
-    if os.path.exists(out):
-        shutil.rmtree(out)
-
-    cmd = (
-        "combat_quick.py "
-        + data_path
-        + "CamCAN.md.raw.csv.gz "
-        + data_path
-        + "ShamCamCAN.md.raw.csv.gz "
-        + "-m pairwise "
-        + "--out_dir "
-        + out
-    )
-    subprocess.call(cmd, shell=True)
-
-    model = os.path.join(out, "ShamCamCAN-CamCAN.md.pairwise.model.csv")
-    data = os.path.join(out, "ShamCamCAN.md.pairwise.csv.gz")
-    fig1 = os.path.join(
-        out, "AgeCurve_CamCAN-ShamCamCAN_raw_md_mniIITmaskskeletonFA.png"
-    )
-    fig2 = os.path.join(
-        out, "AgeCurve_CamCAN-ShamCamCAN_pairwise_md_mniIITmaskskeletonFA.png"
-    )
-    fig3 = os.path.join(
-        out, "DataModels_CamCAN-ShamCamCAN_pairwise_md_mniIITmaskskeletonFA.png"
-    )
-    dist1 = os.path.join(out, "ShamCamCAN.md.pairwise.bhattacharrya.txt")
-    dist2 = os.path.join(out, "ShamCamCAN.md.raw.bhattacharrya.txt")
-
-    npt.assert_(os.path.exists(model), msg="Model file not generated.")
-    npt.assert_(os.path.exists(data), msg="Harmonized data file not generated.")
-    npt.assert_(os.path.exists(fig1), msg="Raw AgeCurve figure not generated.")
-    npt.assert_(os.path.exists(fig2), msg="Harmonized AgeCurve figure not generated.")
-    npt.assert_(os.path.exists(fig3), msg="Model figure not generated.")
-    npt.assert_(
-        os.path.exists(dist1), msg="Harmonized Bhattacharrya file not generated."
-    )
-    npt.assert_(os.path.exists(dist2), msg="Raw Bhattacharrya file not generated.")
-
-    model_ = os.path.join(
-        folder,
-        "scripts/tests/target_out/QuickCombat_pairwise",
-        "ShamCamCAN-CamCAN.md.pairwise.model.csv",
-    )
-    a = np.loadtxt(model, dtype=str, delimiter=",")
-    b = np.loadtxt(model_, dtype=str, delimiter=",")
-    npt.assert_array_almost_equal(a[2:, 1:].astype("float"), b[2:, 1:].astype("float"))
-
-    data_ = os.path.join(
-        folder,
-        "scripts/tests/target_out/QuickCombat_pairwise",
-        "ShamCamCAN.md.pairwise.csv.gz",
-    )
-    a = pd.read_csv(data)["mean"].to_numpy()
-    b = pd.read_csv(data_)["mean"].to_numpy()
-    npt.assert_array_almost_equal(a, b)
-
-
-def test_quick_combat_clinic():
-    folder = pathlib.Path(clinical_combat.__file__).resolve().parent.parent
-    data_path = os.path.join(folder, "docs/data/")
-
-    out = os.path.join(folder, "scripts/tests/out/QuickCombat_clinic")
-    if os.path.exists(out):
-        shutil.rmtree(out)
-
-    cmd = (
-        "combat_quick.py "
-        + data_path
-        + "CamCAN.md.raw.csv.gz "
-        + data_path
-        + "ShamCamCAN.md.raw.csv.gz "
-        + "-m clinic "
-        + "--out_dir "
-        + out
-    )
-    subprocess.call(cmd, shell=True)
-
-    model = os.path.join(out, "ShamCamCAN-CamCAN.md.clinic.model.csv")
-    data = os.path.join(out, "ShamCamCAN.md.clinic.csv.gz")
-    fig1 = os.path.join(
-        out, "AgeCurve_CamCAN-ShamCamCAN_raw_md_mniIITmaskskeletonFA.png"
-    )
-    fig2 = os.path.join(
-        out, "AgeCurve_CamCAN-ShamCamCAN_clinic_md_mniIITmaskskeletonFA.png"
-    )
-    fig3 = os.path.join(
-        out, "DataModels_CamCAN-ShamCamCAN_clinic_md_mniIITmaskskeletonFA.png"
-    )
-    dist1 = os.path.join(out, "ShamCamCAN.md.clinic.bhattacharrya.txt")
-    dist2 = os.path.join(out, "ShamCamCAN.md.raw.bhattacharrya.txt")
-
-    npt.assert_(os.path.exists(model), msg="Model file not generated.")
-    npt.assert_(os.path.exists(data), msg="Harmonized data file not generated.")
-    npt.assert_(os.path.exists(fig1), msg="Raw AgeCurve figure not generated.")
-    npt.assert_(os.path.exists(fig2), msg="Harmonized AgeCurve figure not generated.")
-    npt.assert_(os.path.exists(fig3), msg="Model figure not generated.")
-    npt.assert_(
-        os.path.exists(dist1), msg="Harmonized Bhattacharrya file not generated."
-    )
-    npt.assert_(os.path.exists(dist2), msg="Raw Bhattacharrya file not generated.")
-
-    model_ = os.path.join(
-        folder,
-        "scripts/tests/target_out/QuickCombat_clinic",
-        "ShamCamCAN-CamCAN.md.clinic.model.csv",
-    )
-    a = np.loadtxt(model, dtype=str, delimiter=",")
-    b = np.loadtxt(model_, dtype=str, delimiter=",")
-    npt.assert_array_almost_equal(a[2:, 1:].astype("float"), b[2:, 1:].astype("float"))
-
-    data_ = os.path.join(
-        folder,
-        "scripts/tests/target_out/QuickCombat_clinic",
-        "ShamCamCAN.md.clinic.csv.gz",
-    )
-    a = pd.read_csv(data)["mean"].to_numpy()
-    b = pd.read_csv(data_)["mean"].to_numpy()
-    npt.assert_array_almost_equal(a, b)
-
 
 def test_visualize_data():
     folder = pathlib.Path(clinical_combat.__file__).resolve().parent.parent

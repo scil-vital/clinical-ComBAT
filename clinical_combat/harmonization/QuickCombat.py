@@ -31,8 +31,7 @@ class QuickCombat(QuickHarmonizationMethod):
         use_empirical_bayes=True,
         limit_age_range=False,
         degree=1,
-        regul_ref=0,
-        regul_mov=0,
+        regul_ref=0
     ):
         """
         alpha_ref: Array
@@ -59,8 +58,6 @@ class QuickCombat(QuickHarmonizationMethod):
             Polynomial degree of the age fit.
         regul_ref: float
             Regularization parameter for the reference site data.
-        regul_mov: float
-            Regularization parameter for the moving site data.
 
         """
         super().__init__(
@@ -81,14 +78,11 @@ class QuickCombat(QuickHarmonizationMethod):
         self.limit_age_range = limit_age_range
         self.degree = degree
         self.regul_ref = regul_ref
-        self.regul_mov = regul_mov
 
         if self.degree < 0:
             raise AssertionError("Degree must be greater than 1.")
         if self.regul_ref < 0:
             raise AssertionError("regul_ref must be greater or equal to 0.")
-        if self.regul_mov < 0 and not self.regul_mov == -1:
-            raise AssertionError("regul_mov must be greater or equal to 0, or -1.")
 
     def apply(self, data):
         """
@@ -228,7 +222,7 @@ class QuickCombat(QuickHarmonizationMethod):
                 )
         return ref_data, mov_data
 
-    def get_mean_bhattacharyya_distance(self, ref_data, mov_data):
+    def get_mean_bhattacharyya_distance(self, ref_data, mov_data): # pas utilise??
         """
         Returns the mean Bhattacharyya distance across all bundles.
 
@@ -332,7 +326,6 @@ class QuickCombat(QuickHarmonizationMethod):
 
         self.degree = self.model_params["degree"]
         self.regul_ref = self.model_params["regul_ref"]
-        self.regul_mov = self.model_params["regul_mov"]
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
         nb = self.model_params["nbr_beta_params"]
         self.ignore_handedness_covariate = self.model_params[
@@ -408,7 +401,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
         self.model_params["degree"] = self.degree
         self.model_params["regul_ref"] = self.regul_ref
-        self.model_params["regul_mov"] = self.regul_mov
 
     def get_beta_labels(self):
         """
@@ -642,8 +634,8 @@ class QuickCombat(QuickHarmonizationMethod):
         # g_bar: mean of the standardized estimate of the additive bias
         # without empirical bayes
         gamma_bar = np.mean(gamma_hat)
-
-        # t2: tau ** 2, variance of the standardized estimate of the additive bias
+        # TODO ici on fait reference a tau
+        # t2: tau ** 2, variance of the standardized estimate of the additive bias 
         # without empirical bayes
         t2 = np.var(gamma_hat, ddof=1)
 

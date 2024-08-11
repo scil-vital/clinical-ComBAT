@@ -46,8 +46,8 @@ def find_mov_regul(ref_data, mov_data, QC):
     regs = np.arange(0, 10.5, 0.5) ** 2
     print(regs)
     errors = []
+    # TODO Je ne sais pas a quoi ce code sert, je ne sais pas si en enlevant cette ligne on peut enlever la boucle
     for reg in regs:
-        QC.regul_mov = reg
         errors.append(leave_one_out_error(ref_data, mov_data, QC))
 
     # import pdb; pdb.set_trace()

@@ -80,8 +80,6 @@ def main():
             str(mov_site)
             + "."
             + metric_name
-            + "."
-            + QC.model_params["name"]
             + ".csv.gz",
         )
     else:

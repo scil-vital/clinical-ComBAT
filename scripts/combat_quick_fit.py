@@ -2,20 +2,13 @@
 """
 Script to compute the transfer function from a moving site to a reference site.
 
-Harmonization methods:
+Harmonization method:
     vanilla: uses both moving and reference data to fit the covariate
              regression parameters (Beta_mov).
-    pairwise: uses only the moving data to to fit the covariate regression
-              parameters (Beta_mov)
-    clinic: uses a priori from the reference site to fit the moving site
-            (Beta_mov, variance)
 
 Examples:
 # Use the vanilla method to harmonize the moving site data to the reference site data (linear)
-combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method vanilla
-
-# Use the clinic method to harmonize the moving site data to the reference site data (non-linear)
-combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method clinic
+combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz
 """
 
 import argparse
@@ -58,13 +51,6 @@ def _build_arg_parser():
         default="",
     )
     p.add_argument(
-        "-m",
-        "--method",
-        default="clinic",
-        choices=["vanilla", "pairwise", "clinic"],
-        help="Harmonization method.",
-    )
-    p.add_argument(
         "--ignore_sex",
         action="store_true",
         help="If set, ignore the sex covariate in the data.",
@@ -86,42 +72,16 @@ def _build_arg_parser():
         help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
     )
     p.add_argument(
-        "--robust",
-        action="store_true",
-        help="If set, use combat robust. This tries "
-        + "identifying/rejecting non-HC subjects.",
-    )
-    p.add_argument(
         "--regul_ref",
         type=float,
         default=0,
         help="Regularization parameter for the reference site data. [%(default)s]",
     )
     p.add_argument(
-        "--regul_mov",
-        type=float,
-        help="Regularization parameter for the moving site data. Set to '-1' for automatic tuning "
-        + "[default=0 for vanilla, pairwise; -1 for clinic]",
-    )
-    p.add_argument(
         "--degree",
         type=int,
-        help="Degree of the polynomial fit in Combat. Default is linear "
-        + "[default=1 for vanilla, pairwise; 2 for clinic].",
-    )
-    p.add_argument(
-        "--nu",
-        type=float,
-        default=5,
-        help="Combat Clinic hyperparameter for the standard deviation estimation of the moving "
-        + "site data. It must be >=0.  [%(default)s]",
-    )
-    p.add_argument(
-        "--tau",
-        type=float,
-        default=2,
-        help="Combat Clinic hyperparameter for the covariate fit of the moving site data. "
-        "It must be >= 1. [%(default)s]",
+        default=1,
+        help="Degree of the polynomial fit in Combat. Default is linear.",
     )
 
     add_verbose_arg(p)
@@ -135,21 +95,6 @@ def main():
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-
-    if args.robust:
-        raise AssertionError("Robust is not implemented.")
-
-    if args.regul_mov is None:
-        if args.method in ["vanilla", "pairwise"]:
-            args.regul_mov = 0
-        else:
-            args.regul_mov = -1
-
-    if args.degree is None:
-        if args.method in ["vanilla", "pairwise"]:
-            args.degree = 1
-        else:
-            args.degree = 2
 
     ref_data = pd.read_csv(args.ref_data)
     mov_data = pd.read_csv(args.mov_data)
@@ -175,8 +120,6 @@ def main():
             + str(np.unique(ref_data["site"])[0])
             + "."
             + str(np.unique(ref_data["metric"])[0])
-            + "."
-            + args.method.lower()
             + ".model.csv",
         )
     else:
@@ -185,16 +128,12 @@ def main():
     assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
 
     QC = from_model_name(
-        args.method.lower(),
         ignore_handedness_covariate=args.ignore_handedness,
         ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=not args.no_empirical_bayes,
         limit_age_range=args.limit_age_range,
         degree=args.degree,
         regul_ref=args.regul_ref,
-        regul_mov=args.regul_mov,
-        nu=args.nu,
-        tau=args.tau,
     )
 
     QC.fit(ref_data, mov_data)
