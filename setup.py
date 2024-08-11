@@ -9,12 +9,12 @@ here = path.abspath(path.dirname(__file__))
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
-
+#TODO
 setup(
     author="Gabriel Girard, Manon Edde, Félix Dumais, Matthieu Dumont, Guillaume Theaud, Jean-Christophe Houde, Maxime Descoteaux, Pierre-Marc Jodoin",
     author_email="fortin946@gmail.com,",
     classifiers=[        
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.7",# A changer avec le requirements.txt actuel
     ],
     description="Clinical-ComBAT harmonization algorithm.",
 

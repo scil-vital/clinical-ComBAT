@@ -5,6 +5,11 @@ Summary: Clinical-ComBAT harmonization algorithm.
 Home-page: https://github.com/jodoin/clinical-ComBAT
 Author: Gabriel Girard, Manon Edde, Félix Dumais, Matthieu Dumont, Guillaume Theaud, Jean-Christophe Houde, Maxime Descoteaux, Pierre-Marc Jodoin
 Author-email: fortin946@gmail.com,
+License: UNKNOWN
 Project-URL: Github, https://github.com/jodoin/clinical-ComBAT
+Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3.7
 License-File: LICENSE
+
+UNKNOWN
+
