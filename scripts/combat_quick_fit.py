@@ -77,12 +77,6 @@ def _build_arg_parser():
         default=0,
         help="Regularization parameter for the reference site data. [%(default)s]",
     )
-    p.add_argument(
-        "--degree",
-        type=int,
-        default=1,
-        help="Degree of the polynomial fit in Combat. Default is linear.",
-    )
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -132,7 +126,6 @@ def main():
         ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=not args.no_empirical_bayes,
         limit_age_range=args.limit_age_range,
-        degree=args.degree,
         regul_ref=args.regul_ref,
     )
 

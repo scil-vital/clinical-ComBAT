@@ -30,7 +30,6 @@ class QuickCombat(QuickHarmonizationMethod):
         delta=None,
         use_empirical_bayes=True,
         limit_age_range=False,
-        degree=1,
         regul_ref=0
     ):
         """
@@ -54,8 +53,6 @@ class QuickCombat(QuickHarmonizationMethod):
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
             Remove reference data with age outside the range of the moving site.
-        degree: int
-            Polynomial degree of the age fit.
         regul_ref: float
             Regularization parameter for the reference site data.
 
@@ -76,11 +73,8 @@ class QuickCombat(QuickHarmonizationMethod):
         self.delta = delta
         self.use_empirical_bayes = use_empirical_bayes
         self.limit_age_range = limit_age_range
-        self.degree = degree
         self.regul_ref = regul_ref
 
-        if self.degree < 0:
-            raise AssertionError("Degree must be greater than 1.")
         if self.regul_ref < 0:
             raise AssertionError("regul_ref must be greater or equal to 0.")
 
@@ -157,9 +151,7 @@ class QuickCombat(QuickHarmonizationMethod):
         if not self.ignore_handedness_covariate:
             design.append(np.ones(len(ages)) * 0.5)
 
-        # Elevate to a polynomial of degree the age data
-        for degree in np.arange(1, self.degree + 1):
-            design.append(ages**degree)
+        design.append(ages)
 
         design = np.array(design)
 
@@ -324,7 +316,6 @@ class QuickCombat(QuickHarmonizationMethod):
 
         params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
 
-        self.degree = self.model_params["degree"]
         self.regul_ref = self.model_params["regul_ref"]
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
         nb = self.model_params["nbr_beta_params"]
@@ -399,7 +390,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.model_params["min_age"] = np.min(mov_data["age"])
         self.model_params["max_age"] = np.max(mov_data["age"])
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
-        self.model_params["degree"] = self.degree
         self.model_params["regul_ref"] = self.regul_ref
 
     def get_beta_labels(self):
@@ -416,8 +406,7 @@ class QuickCombat(QuickHarmonizationMethod):
             beta_labels.append("beta_sex")
         if not self.ignore_handedness_covariate:
             beta_labels.append("beta_handedness")
-        for degree in np.arange(1, self.degree + 1):
-            beta_labels.append("beta_age" + str(degree))
+        beta_labels.append("beta_age")
         return beta_labels
 
     def get_design_matrices(self, df):
@@ -448,10 +437,8 @@ class QuickCombat(QuickHarmonizationMethod):
             if not self.ignore_handedness_covariate:
                 hstack_list.append(QuickCombat.to_category(data["handedness"]))
 
-            # Elevate to a polynomial of degree the age data
             ages = data["age"].to_numpy()
-            for degree in np.arange(1, self.degree + 1):
-                hstack_list.append(ages**degree)
+            hstack_list.append(ages)
 
             design.append(np.array(hstack_list))
             Y.append(data["mean"].to_numpy())

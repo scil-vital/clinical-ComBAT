@@ -105,12 +105,10 @@ def main():
         args.site_name = str(data.site.unique()) + "_corrupted"
     # TODO ici on fait le test avec p[airwise, donc je ne sais pas si on peut juste enlever ce script
     QC = from_model_name(
-        "pairwise",
         ignore_handedness_covariate=True,
         ignore_sex_covariate=True,
         use_empirical_bayes=False,
         limit_age_range=False,
-        degree=1,
     )
     QC.bundle_names = data.bundle.unique()
 

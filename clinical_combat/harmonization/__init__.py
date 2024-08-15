@@ -11,7 +11,6 @@ def from_model_name(
     ignore_handedness_covariate=False,
     use_empirical_bayes=True,
     limit_age_range=False,
-    degree=1,
     regul_ref=0,
 ):
     QC = QuickCombatVanilla(
@@ -19,7 +18,6 @@ def from_model_name(
         ignore_handedness_covariate=ignore_handedness_covariate,
         use_empirical_bayes=use_empirical_bayes,
         limit_age_range=limit_age_range,
-        degree=degree,
         regul_ref=regul_ref
     )
 

@@ -10,7 +10,7 @@ Harmonization method:
             uses both moving and reference data to fit the covariates regression parameters
             (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
 
-NOTE: the harmonization parameters (regul, degree) are preset. See default settings.
+NOTE: the harmonization parameters (regul) are preset. See default settings.
       If the reference site is MRC-CBSU_Siemens_3T_2, it's renamed CamCAN in the figures.
 
 Example:
@@ -86,11 +86,6 @@ def _build_arg_parser():
         type=float,
         default=0,
         help="Regularization parameter for the reference site data. [%(default)s]",
-    )
-    p.add_argument(
-        "--degree",
-        type=int,
-        help="Degree of the polynomial fit in Combat. [%(default)s]",
     )
 
     p.add_argument(
@@ -175,8 +170,6 @@ def main():
         + " -v "
         + str(args.verbose)
     )
-    if args.degree:
-        cmd += " --degree " + str(args.degree)
     if args.ignore_sex:
         cmd += " --ignore_sex"
     if args.ignore_handedness:
