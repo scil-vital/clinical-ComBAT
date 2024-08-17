@@ -7,7 +7,6 @@ clinical_combat.egg-info/SOURCES.txt
 clinical_combat.egg-info/dependency_links.txt
 clinical_combat.egg-info/not-zip-safe
 clinical_combat.egg-info/top_level.txt
-scripts/combat_corrupt_data.py
 scripts/combat_info.py
 scripts/combat_quick.py
 scripts/combat_quick_QC.py

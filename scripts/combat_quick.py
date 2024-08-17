@@ -81,12 +81,6 @@ def _build_arg_parser():
         action="store_true",
         help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
     )
-    p.add_argument(
-        "--regul_ref",
-        type=float,
-        default=0,
-        help="Regularization parameter for the reference site data. [%(default)s]",
-    )
 
     p.add_argument(
         "--bundles",
@@ -165,8 +159,6 @@ def main():
         + args.out_dir
         + " --output_model_filename "
         + args.output_model_filename
-        + " --regul_ref "
-        + str(args.regul_ref)
         + " -v "
         + str(args.verbose)
     )

@@ -18,7 +18,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization import from_model_name
+from clinical_combat.harmonization import QuickCombatVanilla
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -71,12 +71,6 @@ def _build_arg_parser():
         action="store_true",
         help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
     )
-    p.add_argument(
-        "--regul_ref",
-        type=float,
-        default=0,
-        help="Regularization parameter for the reference site data. [%(default)s]",
-    )
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -121,12 +115,11 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
     assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
 
-    QC = from_model_name(
+    QC = QuickCombatVanilla(
         ignore_handedness_covariate=args.ignore_handedness,
         ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=not args.no_empirical_bayes,
         limit_age_range=args.limit_age_range,
-        regul_ref=args.regul_ref,
     )
 
     QC.fit(ref_data, mov_data)

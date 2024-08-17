@@ -29,8 +29,7 @@ class QuickCombat(QuickHarmonizationMethod):
         gamma=None,
         delta=None,
         use_empirical_bayes=True,
-        limit_age_range=False,
-        regul_ref=0
+        limit_age_range=False
     ):
         """
         alpha_ref: Array
@@ -53,9 +52,6 @@ class QuickCombat(QuickHarmonizationMethod):
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
             Remove reference data with age outside the range of the moving site.
-        regul_ref: float
-            Regularization parameter for the reference site data.
-
         """
         super().__init__(
             bundle_names,
@@ -73,10 +69,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.delta = delta
         self.use_empirical_bayes = use_empirical_bayes
         self.limit_age_range = limit_age_range
-        self.regul_ref = regul_ref
-
-        if self.regul_ref < 0:
-            raise AssertionError("regul_ref must be greater or equal to 0.")
 
     def apply(self, data):
         """
@@ -214,19 +206,6 @@ class QuickCombat(QuickHarmonizationMethod):
                 )
         return ref_data, mov_data
 
-    def get_mean_bhattacharyya_distance(self, ref_data, mov_data): # pas utilise??
-        """
-        Returns the mean Bhattacharyya distance across all bundles.
-
-        ref_data: dataframe
-            Reference site input data.
-
-        mov_data: dataframe
-            Moving site input data.
-
-        """
-        return np.mean(self.get_bundles_bhattacharyya_distance(ref_data, mov_data))
-
     def get_bundles_bhattacharyya_distance(self, ref_data, mov_data):
         """
         Returns the Bhattacharyya distance for all bundles.
@@ -316,7 +295,6 @@ class QuickCombat(QuickHarmonizationMethod):
 
         params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
 
-        self.regul_ref = self.model_params["regul_ref"]
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
         nb = self.model_params["nbr_beta_params"]
         self.ignore_handedness_covariate = self.model_params[
@@ -390,7 +368,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.model_params["min_age"] = np.min(mov_data["age"])
         self.model_params["max_age"] = np.max(mov_data["age"])
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
-        self.model_params["regul_ref"] = self.regul_ref
 
     def get_beta_labels(self):
         """

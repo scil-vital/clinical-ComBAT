@@ -56,7 +56,7 @@ def test_quick_combat_vanilla():
     model_ = os.path.join(
         folder,
         "scripts/tests/target_out/QuickCombat_vanilla",
-        "ShamCamCAN-CamCAN.md.vanilla.model.csv",
+        "ShamCamCAN-CamCAN.md.model.csv",
     )
     a = np.loadtxt(model, dtype=str, delimiter=",")
     b = np.loadtxt(model_, dtype=str, delimiter=",")
@@ -109,35 +109,6 @@ def test_visualize_data():
 
     fig1 = os.path.join(out, "Dataset_2-sites_md_mniIITmaskskeletonFA.png")
     npt.assert_(os.path.exists(fig1), msg="combat_visualize_data fig not generated.")
-
-
-def test_corrupt_data():
-    folder = pathlib.Path(clinical_combat.__file__).resolve().parent.parent
-    data_path = os.path.join(folder, "docs/data/")
-
-    out = os.path.join(folder, "scripts/tests/out/corrupt_data")
-    if os.path.exists(out):
-        shutil.rmtree(out)
-    cmd = (
-        "combat_corrupt_data.py "
-        + data_path
-        + "CamCAN.md.raw.csv.gz "
-        + out
-        + "/corruptCamCAN.md.raw.csv.gz "
-        + "--mult 90 --add 110 --slope 75 --nbr_sub 50 --site_name corruptcamcan --HC"
-    )
-    subprocess.call(cmd, shell=True)
-    data = os.path.join(out, "corruptCamCAN.md.raw.csv.gz")
-    npt.assert_(os.path.exists(data), msg="corrupt data not generated.")
-
-    data_ = os.path.join(
-        folder,
-        "scripts/tests/target_out/corrupt_data",
-        "corruptCamCAN.md.raw.csv.gz",
-    )
-    a = pd.read_csv(data)["mean"].to_numpy()
-    b = pd.read_csv(data_)["mean"].to_numpy()
-    npt.assert_array_almost_equal(a, b)
 
 
 def test_info():

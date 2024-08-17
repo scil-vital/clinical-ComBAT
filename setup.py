@@ -9,14 +9,14 @@ here = path.abspath(path.dirname(__file__))
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
-#TODO
+#TODO github et nom package
 setup(
-    author="Gabriel Girard, Manon Edde, Félix Dumais, Matthieu Dumont, Guillaume Theaud, Jean-Christophe Houde, Maxime Descoteaux, Pierre-Marc Jodoin",
-    author_email="fortin946@gmail.com,",
+    author="Gabriel Girard, Manon Edde, Yoan David, Félix Dumais, Matthieu Dumont, Guillaume Theaud, Jean-Christophe Houde, Maxime Descoteaux, Pierre-Marc Jodoin",
+    author_email="gabriel.p.girard@usherbrooke.ca",
     classifiers=[        
-        "Programming Language :: Python :: 3.7",# A changer avec le requirements.txt actuel
+        "Programming Language :: Python :: 3.9",
     ],
-    description="Clinical-ComBAT harmonization algorithm.",
+    description="ComBAT harmonization algorithm.",
 
     url="https://github.com/jodoin/clinical-ComBAT",
     project_urls={
