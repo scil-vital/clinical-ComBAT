@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import ast
 
-from clinical_combat.harmonization.QuickCombatVanilla import QuickCombatVanilla
+from vanilla_combat.harmonization.QuickCombatVanilla import QuickCombatVanilla
 
 def from_model_filename(model_filename):
     with open(model_filename) as f:

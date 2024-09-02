@@ -18,12 +18,12 @@ setup(
     ],
     description="ComBAT harmonization algorithm.",
 
-    url="https://github.com/jodoin/clinical-ComBAT",
+    url="https://github.com/scil-vital/Vanilla-ComBAT",
     project_urls={
-        "Github": "https://github.com/jodoin/clinical-ComBAT",
+        "Github": "https://github.com/scil-vital/Vanilla-ComBAT",
     },
-    name="clinical_combat",
-    packages=["clinical_combat"],
+    name="vanilla_combat",
+    packages=["vanilla_combat"],
     version="1.0.0",
     zip_safe=False,
     scripts=glob("scripts/*.py"),

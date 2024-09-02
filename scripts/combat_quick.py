@@ -10,7 +10,7 @@ Harmonization method:
             uses both moving and reference data to fit the covariates regression parameters
             (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
 
-NOTE: the harmonization parameters (regul) are preset. See default settings.
+NOTE: the harmonization parameters are preset. See default settings.
       If the reference site is MRC-CBSU_Siemens_3T_2, it's renamed CamCAN in the figures.
 
 Example:
@@ -26,7 +26,7 @@ import subprocess
 
 import pandas as pd
 
-from clinical_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from vanilla_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
 
 
 def _build_arg_parser():

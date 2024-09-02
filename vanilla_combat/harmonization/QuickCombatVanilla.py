@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization.QuickCombat import QuickCombat
+from vanilla_combat.harmonization.QuickCombat import QuickCombat
 
 
 class QuickCombatVanilla(QuickCombat):

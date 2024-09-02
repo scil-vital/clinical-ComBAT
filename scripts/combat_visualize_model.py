@@ -27,17 +27,17 @@ import matplotlib
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization import from_model_filename
-from clinical_combat.utils.combatio import load_sites_data
-from clinical_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
-from clinical_combat.visualization.plots import (
+from vanilla_combat.harmonization import from_model_filename
+from vanilla_combat.utils.combatio import load_sites_data
+from vanilla_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from vanilla_combat.visualization.plots import (
     add_models_to_plot,
     add_scatterplot_to_curve,
     initiate_joint_marginal_plot,
     scale_color,
     update_global_figure_style_and_save,
 )
-from clinical_combat.visualization.viz import custom_palette, generate_query, line_style
+from vanilla_combat.visualization.viz import custom_palette, generate_query, line_style
 
 
 def _build_arg_parser():

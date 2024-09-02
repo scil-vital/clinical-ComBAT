@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from matplotlib.pyplot import *
 
-from clinical_combat.harmonization.QuickHarmonizationMethod import (
+from vanilla_combat.harmonization.QuickHarmonizationMethod import (
     QuickHarmonizationMethod,
 )
 
@@ -441,7 +441,7 @@ class QuickCombat(QuickHarmonizationMethod):
         return cat
 
     @staticmethod
-    def get_alpha_beta(X, Y, regul=0, reference_Bs=None):
+    def get_alpha_beta(X, Y):
         """
         Fit the regression parameters of the covariates. This may include Age, Sex and Handedness.
         The age may be a linear or quadratic fit. See `get_design_matrices(.)`.
@@ -451,10 +451,6 @@ class QuickCombat(QuickHarmonizationMethod):
             The design matrix of the covariates.
         Y: array
             The values corresponding to the design matrix.
-        regul: float
-            Regularisation term (r)
-        reference_Bs: array
-            Reference regression parameters to be use as prior.
 
         .. math::
         B = (X^T X + r*I)^{-1} X^T Y
@@ -475,24 +471,9 @@ class QuickCombat(QuickHarmonizationMethod):
             yy = yy[wh]
             mod_transpose_mod = np.dot(mod.T, mod)
 
-            if reference_Bs is not None:
-                ref_w = reference_Bs[i].T + sys.float_info.epsilon
-            else:
-                ref_w = np.ones(mod_transpose_mod.shape[0]) * sys.float_info.epsilon
+            vec = np.dot(mod.T, yy)
 
-            # The amplitude of each term should be proportional of the reference weights.
-            regul_mat = (
-                regul
-                * np.abs(ref_w[0] / ref_w)
-                * np.identity(mod_transpose_mod.shape[0])
-            )
-            # no regul for the bias term
-            regul_mat[0, 0] = 0
-
-            mat = mod_transpose_mod + regul_mat
-            vec = np.dot(regul_mat, ref_w) + np.dot(mod.T, yy)
-
-            B = np.linalg.solve(mat, vec)
+            B = np.linalg.solve(mod_transpose_mod, vec)
             Bs.append(B)
         Bs = np.array(Bs)
         return Bs[:, 0], Bs[:, 1:]

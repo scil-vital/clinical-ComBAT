@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from clinical_combat.utils.combatio import load_sites_data
+from vanilla_combat.utils.combatio import load_sites_data
 
 
 def count_by_category(df, column_name, bundles, metrics):

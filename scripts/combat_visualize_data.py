@@ -19,14 +19,14 @@ import argparse
 import logging
 import os
 
-from clinical_combat.utils.combatio import load_sites_data
-from clinical_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
-from clinical_combat.visualization.plots import (
+from vanilla_combat.utils.combatio import load_sites_data
+from vanilla_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from vanilla_combat.visualization.plots import (
     add_scatterplot_to_curve,
     initiate_joint_marginal_plot,
     update_global_figure_style_and_save,
 )
-from clinical_combat.visualization.viz import custom_palette, markers_style
+from vanilla_combat.visualization.viz import custom_palette, markers_style
 
 
 def _build_arg_parser():

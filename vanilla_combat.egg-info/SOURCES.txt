@@ -1,0 +1,17 @@
+LICENSE
+README.md
+setup.py
+scripts/combat_info.py
+scripts/combat_quick.py
+scripts/combat_quick_QC.py
+scripts/combat_quick_apply.py
+scripts/combat_quick_fit.py
+scripts/combat_visualize_data.py
+scripts/combat_visualize_harmonization.py
+scripts/combat_visualize_model.py
+vanilla_combat/__init__.py
+vanilla_combat.egg-info/PKG-INFO
+vanilla_combat.egg-info/SOURCES.txt
+vanilla_combat.egg-info/dependency_links.txt
+vanilla_combat.egg-info/not-zip-safe
+vanilla_combat.egg-info/top_level.txt

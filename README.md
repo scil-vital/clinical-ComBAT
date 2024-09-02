@@ -1,4 +1,4 @@
-# clinical-ComBAT
+# vanilla-ComBAT
 Harmonization package for MRI data.
 
 # Installation

@@ -18,8 +18,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization import QuickCombatVanilla
-from clinical_combat.utils.scilpy_utils import (
+from vanilla_combat.harmonization import QuickCombatVanilla
+from vanilla_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
     assert_outputs_exist,
