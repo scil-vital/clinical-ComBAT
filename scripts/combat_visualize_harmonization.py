@@ -33,7 +33,7 @@ Display options:
     allow you to remove elements such as disease data.
     The --display_point option will display data moving with a scatterplot rather than a curve.
     With the --display_errors option, it displays the uncertainty value (uncertainty)
-    or the error bars (bound) in the post-harmonization graph, ONLY with the “single_subject”
+    or the error bars (bound) in the post-harmonization graph, ONLY with the "single_subject"
     harmonization. For the moment, this option is only available for the --display_point option.
 
 # Default usage:
