@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Visualizes the harmonization model between a reference site and a moving site.
 The plot is a scatterplot, with each color representing a site (reference = black; moving = blue,

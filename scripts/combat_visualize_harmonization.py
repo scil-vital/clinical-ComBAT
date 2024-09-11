@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Visualizes reference site (target) and moving site before (raw) and after (combat) harmonization.
 To view several sites at once, use combat_quick_visualize.py.

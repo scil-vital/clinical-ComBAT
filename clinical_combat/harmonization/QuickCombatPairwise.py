@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 
 from clinical_combat.harmonization.QuickCombat import QuickCombat

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # fmt: off
 """
 Visualizes the distribution of sites before and after harmonization using Boxplot.

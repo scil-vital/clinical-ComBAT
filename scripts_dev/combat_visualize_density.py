@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # fmt: off
 """
 Visualize density plot (KDE) per site for all bundles (HC).

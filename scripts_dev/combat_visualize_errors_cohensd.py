@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # fmt: off
 """
 Visualizes the difference between the mean or standard deviation per site and the
