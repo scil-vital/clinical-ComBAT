@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 
 from clinical_combat.harmonization import from_model_name
+from clinical_combat.utils.robust import remove_outliers
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -137,9 +138,6 @@ def main():
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    if args.robust:
-        raise AssertionError("Robust is not implemented.")
-
     if args.regul_mov is None:
         if args.method in ["vanilla", "pairwise"]:
             args.regul_mov = 0
@@ -197,6 +195,8 @@ def main():
         nu=args.nu,
         tau=args.tau,
     )
+    if args.robust:
+        remove_outliers(ref_data, mov_data, args)
 
     QC.fit(ref_data, mov_data)
 

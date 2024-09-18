@@ -1,6 +1,18 @@
-*.pyc
-*.pyd
-*.so
-*.c
-*.cpp
-*.png
+ADNI_CLEAN
+ADNI_MODELS
+ADNI_RAW
+ADNI_BEST
+ADNI_BEST_CLEAN
+ADNI_BEST_VIZUALIZE
+168Viz
+compilation_viz
+DONNES
+RES
+PLOTS
+
+launch.json
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]

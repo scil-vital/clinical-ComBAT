@@ -60,6 +60,38 @@ def _build_arg_parser():
 
     return p
 
+def QC(ref_data_file,mov_data_file,model):
+
+    QC = from_model_filename(model)
+
+    metric_name = QC.model_params["metric_name"]
+    ref_site = QC.model_params["ref_site"]
+
+    ref_data = pd.read_csv(ref_data_file).query("disease == 'HC'")
+    mov_data = pd.read_csv(mov_data_file).query("disease == 'HC'")
+
+    # Check if moving site is a string
+    if mov_data.site.dtype != "str":
+        mov_data.site = mov_data.site.astype(str)
+    if ref_data.site.dtype != "str":
+        ref_data.site = ref_data.site.astype(str)
+
+    """if len(np.unique(mov_data["site"])) != 1:
+        raise AssertionError("The moving data contains more than one site.")"""
+    if metric_name != np.unique(mov_data["metric"]):
+        raise AssertionError("Data file have different metrics.")
+    if ref_site != np.unique(ref_data["site"]):
+        logging.warning("Model site and reference data site don't match.")
+
+    dists = QC.get_bundles_bhattacharyya_distance(ref_data, mov_data)
+
+    count = len(mov_data.sid.unique())
+
+    print(
+        "      Mean Bhattacharrya distance: %f (min: %f, max: %f)"
+        % (np.mean(dists), np.min(dists), np.max(dists))
+    )
+    return dists
 
 def main():
     parser = _build_arg_parser()
@@ -80,8 +112,8 @@ def main():
     if ref_data.site.dtype != "str":
         ref_data.site = ref_data.site.astype(str)
 
-    if len(np.unique(mov_data["site"])) != 1:
-        raise AssertionError("The moving data contains more than one site.")
+    """if len(np.unique(mov_data["site"])) != 1:
+        raise AssertionError("The moving data contains more than one site.")"""
     if metric_name != np.unique(mov_data["metric"]):
         raise AssertionError("Data file have different metrics.")
     if ref_site != np.unique(ref_data["site"]):

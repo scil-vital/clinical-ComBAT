@@ -46,7 +46,7 @@ class QuickCombatVanilla(QuickCombat):
             )
         return s_y
 
-    def fit(self, ref_data, mov_data):
+    def fit(self, ref_data, mov_data, HC_only=True):
         """
         Combat Vanilla fit. The moving site beta and alpha are fitted using all data.
         The reference site alpha and beta is fitted using the reference site data.
@@ -56,7 +56,7 @@ class QuickCombatVanilla(QuickCombat):
         mov_data: DataFrame
             Data of the moving site.
         """
-        ref_data, mov_data = self.prepare_data(ref_data, mov_data)
+        ref_data, mov_data = self.prepare_data(ref_data, mov_data, HC_only)
 
         # fit intercept and covariates of the reference site using reference site data
         design_ref, y_ref = self.get_design_matrices(ref_data)

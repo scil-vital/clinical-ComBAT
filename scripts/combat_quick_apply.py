@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from clinical_combat.harmonization import from_model_filename
-from clinical_combat.utils.combatio import save_quickcombat_data_to_csv
+from clinical_combat.utils.combatio import save_quickcombat_data_to_csv, save_quickcombat_data_to_best
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -50,6 +50,75 @@ def _build_arg_parser():
 
     return p
 
+def make_best(mov_data_file, model):
+
+    QC = from_model_filename(model)
+
+    metric_name = QC.model_params["metric_name"]
+    mov_site = str(QC.model_params["mov_site"])
+    mov_data = pd.read_csv(mov_data_file)
+
+    # Check if moving site is a string
+    if mov_data.site.dtype != "str":
+        mov_data.site = mov_data.site.astype(str)
+
+    """if len(np.unique(mov_data["site"])) != 1:
+        raise AssertionError("The moving data contains more than one site.")"""
+    if metric_name != np.unique(mov_data["metric"]):
+        raise AssertionError("Data file have different metrics.")
+    if mov_site != np.unique(mov_data["site"])[0]:
+        logging.warning("Model and data site don't match.")
+
+    y_harm = QC.apply(mov_data)
+
+    return save_quickcombat_data_to_best(
+        mov_data,
+        y_harm,
+        QC.bundle_names,
+        metric_name,
+        QC.model_params["name"],
+        model,
+    )
+def apply(mov_data_file, model,out_dir):
+
+    QC = from_model_filename(model)
+
+    metric_name = QC.model_params["metric_name"]
+    mov_site = str(QC.model_params["mov_site"])
+    mov_data = pd.read_csv(mov_data_file)
+
+    # Check if moving site is a string
+    if mov_data.site.dtype != "str":
+        mov_data.site = mov_data.site.astype(str)
+
+    """if len(np.unique(mov_data["site"])) != 1:
+        raise AssertionError("The moving data contains more than one site.")"""
+    if metric_name != np.unique(mov_data["metric"]):
+        raise AssertionError("Data file have different metrics.")
+    if mov_site != np.unique(mov_data["site"])[0]:
+        logging.warning("Model and data site don't match.")
+
+    y_harm = QC.apply(mov_data)
+
+    output_filename = os.path.join(
+        out_dir,
+        str(mov_site)
+        + "."
+        + metric_name
+        + "."
+        + QC.model_params["name"]
+        + ".csv.gz",
+    )
+
+    save_quickcombat_data_to_csv(
+        mov_data,
+        y_harm,
+        QC.bundle_names,
+        metric_name,
+        QC.model_params["name"],
+        model,
+        output_filename,
+    )
 
 def main():
     parser = _build_arg_parser()

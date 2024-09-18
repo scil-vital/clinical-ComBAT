@@ -157,3 +157,67 @@ def save_quickcombat_data_to_csv(
         res = np.hstack([res, mov_combat])
 
     np.savetxt(out_filename, res.T, delimiter=",", header=header, fmt="%s", comments="")
+
+
+
+def save_quickcombat_data_to_best(
+    mov_data,
+    y_harm,
+    bundle_names,
+    metric_name,
+    method_name,
+    model_name,
+):
+    """
+    Save the harmonized data to a CSV file.
+
+    Args:
+        mov_data (Pandas DataFrame): harmonization data.
+        y_harm (numpy array): harmonized data.
+        bundle_names (list): list of bundle names.
+        metric_name (str): metric name.
+        method_name (str): harmonization method name.
+        model_name (str): harmonization model name.
+        out_filename (str): output file name.
+    
+    Returns:
+        CSV file with the harmonized data.
+
+    """
+
+    if ".model.csv" in model_name:
+        model_name = basename(model_name).replace(".model", "")
+        model_name = basename(model_name).replace(".csv", "")
+
+    res = np.empty((9, 0))
+
+    mov_data["site"] = "adni_compilation"
+
+    for i, bundle in enumerate(bundle_names):
+        data = mov_data.query("bundle == @bundle")
+        sids = data["sid"].to_numpy()
+        y = data["mean"].to_numpy()
+        ages = data["age"].to_numpy()
+        sexes = data["sex"].to_numpy()
+        handednesses = data["handedness"].to_numpy()
+        diseases = data["disease"].to_numpy()
+        sites = data["site"].to_numpy()
+        bundles = data["bundle"].to_numpy()
+        metrics = np.array([metric_name] * y.shape[0]).reshape((-1))
+
+        mov_combat = np.vstack(
+            [
+                sids,
+                bundles,
+                metrics,
+                y_harm[i],
+                sites,
+                ages,
+                sexes,
+                handednesses,
+                diseases,
+            ]
+        )
+        res = np.hstack([res, mov_combat])
+
+    return res

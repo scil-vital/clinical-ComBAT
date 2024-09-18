@@ -132,7 +132,7 @@ class QuickHarmonizationMethod:
         self.model_params["ref_site"] = np.unique(ref_data["site"])[0]
         self.model_params["metric_name"] = np.unique(ref_data["metric"])[0]
 
-    def fit(self, ref_data, mov_data):
+    def fit(self, ref_data, mov_data, HC_only=True):
         pass
 
     def apply(self, data):

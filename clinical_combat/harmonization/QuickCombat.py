@@ -180,7 +180,7 @@ class QuickCombat(QuickHarmonizationMethod):
         y = np.dot(design.transpose(), B)
         return y
 
-    def prepare_data(self, ref_data, mov_data):
+    def prepare_data(self, ref_data, mov_data, HC_only=True):
         """
         Validate and prepare the input sites data before the model fit.
         Data are sorted, the limit age range is applied and 'HC' are selected.
@@ -210,7 +210,8 @@ class QuickCombat(QuickHarmonizationMethod):
             max_age = np.max(mov_data["age"])
             ref_data = ref_data.query("age >= @min_age & age <= @max_age")
 
-        mov_data = mov_data.query("disease == 'HC'")
+        if HC_only:
+            mov_data = mov_data.query("disease == 'HC'")
 
         self.bundle_names = np.intersect1d(
             ref_data.bundle.unique(), mov_data.bundle.unique()
@@ -466,6 +467,28 @@ class QuickCombat(QuickHarmonizationMethod):
             Y.append(data["mean"].to_numpy())
 
         return design, Y
+    
+    def remove_covariate_effect(self, X, Y):
+        """
+        Standardize the data (Y). Combat Vanilla standardize the moving site data with the
+        reference site intercept. Because the data are harmonize to the reference site, sigma is
+        obtained from the reference site data.
+
+        .. math::
+        S_Y = (Y - X^T B - alpha_{ref}) / sigma_{ref}
+
+        X: array
+            The design matrix of the covariates.
+        Y: array
+            The values corresponding to the design matrix.
+        """
+        s_y = []
+        for i in range(len(X)):
+            covariate_effect = np.dot(X[i][1:, :].transpose(), self.beta_mov[i])
+            s_y.append(
+                (Y[i] - covariate_effect)
+            )
+        return s_y
 
     @staticmethod
     def to_category(values):
@@ -678,3 +701,5 @@ class QuickCombat(QuickHarmonizationMethod):
             d_old = d_new
             count = count + 1
         return g_new, d_new
+    
+
