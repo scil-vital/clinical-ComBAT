@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# -*- coding: utf-8 -*-
 """
 Generates an altered/modified version of the input site data based on three parameters:
         slope, add factor and multiply factor (expressed as a percentage).

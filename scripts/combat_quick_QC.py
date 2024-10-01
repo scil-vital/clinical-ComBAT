@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Script to compute the quality control of the transfer function from a moving site to a
 reference site using Bhattacharyya distance.

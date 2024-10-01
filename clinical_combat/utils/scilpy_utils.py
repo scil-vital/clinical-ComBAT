@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Scripts duplicating functions originally available in Scilpy.
 
