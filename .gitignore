@@ -10,9 +10,10 @@ DONNES
 RES
 PLOTS
 
-launch.json
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+
+.venv
+.vscode
