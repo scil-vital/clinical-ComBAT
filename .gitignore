@@ -1,3 +1,8 @@
+__pycache__/
+*.py[cod]
+*$py.class
+**/__pycache__/
+
 ADNI_CLEAN
 ADNI_MODELS
 ADNI_RAW
@@ -9,11 +14,6 @@ compilation_viz
 DONNES
 RES
 PLOTS
-
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
 
 .venv
 .vscode

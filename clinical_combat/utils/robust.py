@@ -19,14 +19,25 @@ def remove_outliers(ref_data, mov_data, args):
         tau=args.tau,
     )
     QC.fit(ref_data, mov_data,False)
+
+    mov_data_HC = mov_data.query("disease == 'HC'")
+    mov_data_SICK = mov_data.query("disease != 'HC'")
     
     design_mov, y_mov = QC.get_design_matrices(mov_data)
     y_no_cov = QC.remove_covariate_effect(design_mov, y_mov)
 
-    plt.scatter(design_mov[0][3], y_no_cov[0])
+    design_mov_HC, y_mov_HC = QC.get_design_matrices(mov_data_HC)
+    y_no_cov_HC = QC.remove_covariate_effect(design_mov_HC, y_mov_HC)
+
+    design_mov_SICK, y_mov_SICK = QC.get_design_matrices(mov_data_SICK)
+    y_no_cov_SICK = QC.remove_covariate_effect(design_mov_SICK, y_mov_SICK)
+
+    plt.scatter(design_mov_HC[0][3], y_no_cov_HC[0],color='blue')
+    plt.scatter(design_mov_SICK[0][3], y_no_cov_SICK[0],color='red')
     plt.savefig("PLOTS/no_cov.png")
     plt.clf()
-    plt.scatter(design_mov[0][3], y_mov[0])
+    plt.scatter(design_mov_HC[0][3], y_mov_HC[0],color='blue')
+    plt.scatter(design_mov_SICK[0][3], y_mov_SICK[0],color='red')
     plt.savefig("PLOTS/yes_cov.png")
     plt.clf()
     plot = sns.distplot(y_no_cov[0])
@@ -34,9 +45,6 @@ def remove_outliers(ref_data, mov_data, args):
     fig.savefig("PLOTS/distribution.png") 
     plt.clf()
 
-    mov_data_HC = mov_data.query("disease == 'HC'")
-    design_mov_HC, y_mov_HC = QC.get_design_matrices(mov_data_HC)
-    y_no_cov_HC = QC.remove_covariate_effect(design_mov_HC, y_mov_HC)
 
     plt.scatter(design_mov_HC[0][3], y_no_cov_HC[0])
     plt.savefig("PLOTS/no_cov_HC.png")
