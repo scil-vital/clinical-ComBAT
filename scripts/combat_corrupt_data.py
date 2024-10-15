@@ -77,6 +77,22 @@ def _build_arg_parser():
         action="store_true",
         help="Only select HC.",
     )
+    p.add_argument(
+        "--degree",
+        type=int,
+        help="Degree of the polynomial fit. [%(default)s]",
+        default="1",
+    )
+    p.add_argument(
+        "--ignore_sex",
+        action="store_true",
+        help="If set, ignore the sex covariate in the data.",
+    )
+    p.add_argument(
+        "--ignore_handedness",
+        action="store_true",
+        help="If set, ignore the handedness covariate in the data.",
+    )
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -104,17 +120,21 @@ def main():
     if args.site_name is None:
         args.site_name = str(data.site.unique()) + "_corrupted"
 
-    QC = from_model_name(
+    model = from_model_name(
         "pairwise",
-        ignore_handedness_covariate=True,
-        ignore_sex_covariate=True,
+        ignore_handedness_covariate=args.ignore_handedness,
+        ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=False,
         limit_age_range=False,
-        degree=1,
+        degree=args.degree,
+        regul_ref=0,
+        regul_mov=0,
+        nu=0,
+        tau=0,
     )
-    QC.bundle_names = data.bundle.unique()
+    model.bundle_names = data.bundle.unique()
 
-    design, y = QC.get_design_matrices(data)
+    design, y = model.get_design_matrices(data)
     alpha, beta = QuickCombat.get_alpha_beta(design, y)
     sigma = QuickCombat.get_sigma(design, y, alpha, beta)
 
@@ -138,7 +158,7 @@ def main():
     save_quickcombat_data_to_csv(
         data,
         np.array(y_cor),
-        QC.bundle_names,
+        model.bundle_names,
         np.unique(data["metric"]),
         "raw",
         "raw",

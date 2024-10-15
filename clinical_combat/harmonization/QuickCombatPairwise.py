@@ -23,7 +23,7 @@ class QuickCombatPairwise(QuickCombat):
         super().set_model_fit_params(ref_data, mov_data)
         self.model_params["name"] = "pairwise"
 
-    def standardize_moving_data(self, X, Y):
+    def standardize_data(self, X, Y):
         """
         Standardize the data (Y). Combat Pairwise standardize the moving site data with the
         moving site intercept. Because the data are harmonize to the reference site, sigma is
@@ -44,6 +44,52 @@ class QuickCombatPairwise(QuickCombat):
                 (Y[i] - self.alpha_mov[i] - covariate_effect) / (self.sigma_ref[i])
             )
         return s_y
+
+
+    def apply(self, data):
+        """
+        Apply the harmonization fitted model to data.
+
+        data: df
+            Dataframe representing the data to harmonized.
+
+        Returns
+        -------
+        harm_y: array
+            Harmonized data values.
+        """
+        if (
+            self.alpha_ref is None
+            or self.beta_ref is None
+            or self.sigma_ref is None
+            or self.gamma_ref is None
+            or self.delta_ref is None
+            or self.alpha_mov is None
+            or self.beta_mov is None
+            or self.sigma_mov is None
+            or self.gamma_mov is None
+            or self.delta_mov is None
+        ):
+            raise AssertionError("Model parameters are not fitted.")
+
+        design, Y = self.get_design_matrices(data)
+        z = self.standardize_data(design, Y)
+
+        harm_y = []
+
+        for i in range(len(design)):
+            covariate_effect_ref = np.dot(
+                design[i][1:, :].transpose(), self.beta_ref[i]
+            )
+
+            harm_y.append(
+                self.sigma_ref[i] / self.delta_mov[i] * (z[i] - self.gamma_mov[i])
+                + self.alpha_ref[i]
+                + covariate_effect_ref
+            )
+
+        return harm_y
+
 
     def fit(self, ref_data, mov_data):
         """
@@ -76,18 +122,23 @@ class QuickCombatPairwise(QuickCombat):
             design_mov, y_mov, self.alpha_mov, self.beta_mov
         )
 
-        z = self.standardize_moving_data(design_mov, y_mov)
+        z = self.standardize_data(design_mov, y_mov)
 
-        self.gamma = np.array([np.mean(x) for x in z])
-        self.delta = np.array(
-            [np.std(x - self.gamma.reshape(-1, 1), ddof=1) for x in z]
+        self.gamma_mov = np.array([np.mean(x) for x in z])
+        self.delta_mov = np.array(
+            [np.std(x - self.gamma_mov.reshape(-1, 1), ddof=1) for x in z]
         )
 
         if self.use_empirical_bayes:
-            self.gamma, self.delta = QuickCombat.emperical_bayes_estimate(
+            self.gamma_mov, self.delta_mov = QuickCombat.emperical_bayes_estimate(
                 z,
-                self.gamma,
-                self.delta,
+                self.gamma_mov,
+                self.delta_mov,
             )
+        
+        # no transformation to reference
+        self.gamma_ref = np.zeros(self.gamma_mov.shape)
+        self.delta_ref = np.ones(self.delta_mov.shape)
+
         self.set_model_fit_params(ref_data, mov_data)
         return

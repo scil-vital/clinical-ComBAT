@@ -4,7 +4,7 @@
 Script to compute the transfer function from a moving site to a reference site.
 
 Harmonization methods:
-    vanilla: uses both moving and reference data to fit the covariate
+    classic: uses both moving and reference data to fit the covariate
              regression parameters (Beta_mov).
     pairwise: uses only the moving data to to fit the covariate regression
               parameters (Beta_mov)
@@ -12,8 +12,9 @@ Harmonization methods:
             (Beta_mov, variance)
 
 Examples:
-# Use the vanilla method to harmonize the moving site data to the reference site data (linear)
-combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method vanilla
+# Use the classic method to harmonize the moving site data to the reference site data 
+# (linear)
+combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
 
 # Use the clinic method to harmonize the moving site data to the reference site data (non-linear)
 combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method clinic
@@ -62,7 +63,7 @@ def _build_arg_parser():
         "-m",
         "--method",
         default="clinic",
-        choices=["vanilla", "vanillamid", "pairwise", "clinic"],
+        choices=["classic", "pairwise", "clinic"],
         help="Harmonization method.",
     )
     p.add_argument(
@@ -102,13 +103,13 @@ def _build_arg_parser():
         "--regul_mov",
         type=float,
         help="Regularization parameter for the moving site data. Set to '-1' for automatic tuning "
-        + "[default=0 for vanilla, pairwise; -1 for clinic]",
+        + "[default=0 for classic, pairwise; -1 for clinic]",
     )
     p.add_argument(
         "--degree",
         type=int,
         help="Degree of the polynomial fit in Combat. Default is linear "
-        + "[default=1 for vanilla, pairwise; 2 for clinic].",
+        + "[default=1 for classic, pairwise; 2 for clinic].",
     )
     p.add_argument(
         "--nu",
@@ -141,13 +142,13 @@ def main():
         raise AssertionError("Robust is not implemented.")
 
     if args.regul_mov is None:
-        if args.method in ["vanilla", "vanillamid", "pairwise"]:
+        if args.method in ["classic", "pairwise"]:
             args.regul_mov = 0
         else:
             args.regul_mov = -1
 
     if args.degree is None:
-        if args.method in ["vanilla", "vanillamid", "pairwise"]:
+        if args.method in ["classic", "pairwise"]:
             args.degree = 1
         else:
             args.degree = 2

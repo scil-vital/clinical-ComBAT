@@ -5,7 +5,8 @@ Script to compute the quality control of the transfer function from a moving sit
 reference site using Bhattacharyya distance.
 
 # Usage :
-# Use the vanilla method to harmonize the moving site data to the reference site data (linear)
+# Use the classic method to harmonize the moving site data to the reference site data 
+# (linear)
 combat_quick_QC.py reference_site.raw.csv.gz moving_site.raw.csv.gz \
                   reference_site-moving_site.model.metric_name.csv
 
@@ -18,7 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization import from_model_filename
+from clinical_combat.harmonization import from_model_filename, from_model_name
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -45,6 +46,12 @@ def _build_arg_parser():
         default="./",
     )
     p.add_argument(
+        "--degree_qc",
+        type=int,
+        help="Degree for model fit. By default it uses the input model degree.",
+        default=0,
+    )
+    p.add_argument(
         "--print_only",
         action="store_true",
         help="If set, do not save the distance to a text file.",
@@ -52,7 +59,7 @@ def _build_arg_parser():
     p.add_argument(
         "-o",
         "--output_results_filename",
-        help="Output txt results filename." + "['mov_data.bhattacharrya.txt']",
+        help="Output txt results filename. ['mov_data.bhattacharrya.txt']",
         default="",
     )
     add_verbose_arg(p)
@@ -66,13 +73,30 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    QC = from_model_filename(args.model)
-
-    metric_name = QC.model_params["metric_name"]
-    ref_site = QC.model_params["ref_site"]
-
     ref_data = pd.read_csv(args.ref_data).query("disease == 'HC'")
     mov_data = pd.read_csv(args.mov_data).query("disease == 'HC'")
+    
+    model = from_model_filename(args.model)
+
+    if args.degree_qc == 0:
+        args.degree_qc = model.degree
+
+    QC = from_model_name(
+        "pairwise",
+        ignore_handedness_covariate=model.ignore_handedness_covariate,
+        ignore_sex_covariate=model.ignore_sex_covariate,
+        use_empirical_bayes=False,
+        limit_age_range=False,
+        degree=args.degree_qc,
+        regul_ref=0,
+        regul_mov=0,
+        nu=0,
+        tau=0,
+    )
+    QC.fit(ref_data, ref_data)
+
+    metric_name = QC.model_params["metric_name"]
+    ref_site = QC.model_params["ref_site"]    
 
     # Check if moving site is a string
     if mov_data.site.dtype != "str":

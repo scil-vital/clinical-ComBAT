@@ -22,11 +22,13 @@ class QuickCombatClinic(QuickCombatPairwise):
         alpha_ref=None,
         beta_ref=None,
         sigma_ref=None,
+        gamma_ref=None,
+        delta_ref=None,
         alpha_mov=None,
         beta_mov=None,
         sigma_mov=None,
-        gamma=None,
-        delta=None,
+        gamma_mov=None,
+        delta_mov=None,
         use_empirical_bayes=True,
         limit_age_range=False,
         degree=1,
@@ -41,17 +43,21 @@ class QuickCombatClinic(QuickCombatPairwise):
         beta_ref: Array
             Covariates slope parameters of the reference site.
         sigma_ref: Array
-            Standard deviation of the reference site.
+            Standard deviation of the reference site.        
+        gamma_ref: Array
+            Additive bias of the reference site.
+        delta_ref: Array
+            Multiplicative bias of the reference site.
         alpha_mov: Array
             Covariates intercept parameter of the moving site.
         beta_mov: Array
             Covariates slope parameters of the moving site.
         sigma_mov: Array
             Standard deviation of the moving site.
-        gamma: Array
-            Additive bias between the moving and the reference sites.
-        delta: Array
-            Multiplicative bias between the moving and the reference sites.
+        gamma_mov: Array
+            Additive bias of the moving site.
+        delta_mov: Array
+            Multiplicative bias of the reference site.
         use_empirical_bayes: bool
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
@@ -76,11 +82,13 @@ class QuickCombatClinic(QuickCombatPairwise):
             alpha_ref=alpha_ref,
             beta_ref=beta_ref,
             sigma_ref=sigma_ref,
+            gamma_ref=gamma_ref,
+            delta_ref=delta_ref,
             alpha_mov=alpha_mov,
             beta_mov=beta_mov,
             sigma_mov=sigma_mov,
-            gamma=gamma,
-            delta=delta,
+            gamma_mov=gamma_mov,
+            delta_mov=delta_mov,
             use_empirical_bayes=use_empirical_bayes,
             limit_age_range=limit_age_range,
             degree=degree,
@@ -94,9 +102,10 @@ class QuickCombatClinic(QuickCombatPairwise):
         if self.tau < 1:
             raise AssertionError("tau must be greater or equal to 1.")
 
+
     def initialize_from_model_params(self, model_filename):
         """
-        Initialize the object from a model file
+        Initialize the object from a model file.
 
         model_filename: str
             Model filename
@@ -104,6 +113,7 @@ class QuickCombatClinic(QuickCombatPairwise):
         """
         super().initialize_from_model_params(model_filename)
         self.nu = self.model_params["nu"]
+        self.tau = self.model_params["tau"]
 
     def set_model_fit_params(self, ref_data, mov_data):
         """
@@ -117,6 +127,7 @@ class QuickCombatClinic(QuickCombatPairwise):
         """
         super().set_model_fit_params(ref_data, mov_data)
         self.model_params["nu"] = self.nu
+        self.model_params["tau"] = self.tau
         self.model_params["name"] = "clinic"
 
     def regularization_parameter_tuning(
@@ -222,11 +233,11 @@ class QuickCombatClinic(QuickCombatPairwise):
             design_mov, y_mov, self.alpha_mov, self.beta_mov
         )
 
-        z = self.standardize_moving_data(design_mov, y_mov)
+        z = self.standardize_data(design_mov, y_mov)
 
-        self.gamma = np.array([np.mean(x) for x in z])
-        self.delta = np.array(
-            [np.std(x - self.gamma.reshape(-1, 1), ddof=1) for x in z]
+        self.gamma_mov = np.array([np.mean(x) for x in z])
+        self.delta_mov = np.array(
+            [np.std(x - self.gamma_mov.reshape(-1, 1), ddof=1) for x in z]
         )
 
         if self.use_empirical_bayes:
@@ -234,9 +245,13 @@ class QuickCombatClinic(QuickCombatPairwise):
             for i in range(len(self.sigma_mov)):
                 N = len(y_mov[i])
                 # The target normalized std is 1 (self.nu * target_std = self.nu)
-                new = (self.delta[i] * N + self.nu) / (N + self.nu)
+                new = (self.delta_mov[i] * N + self.nu) / (N + self.nu)
                 new_delta.append(new)
-            self.delta = np.array(new_delta)
+            self.delta_mov = np.array(new_delta)
+
+        # no transformation to reference
+        self.gamma_ref = np.zeros(self.gamma_mov.shape)
+        self.delta_ref = np.ones(self.delta_mov.shape)
 
         self.set_model_fit_params(ref_data, mov_data)
         return

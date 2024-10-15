@@ -6,9 +6,7 @@ import ast
 from clinical_combat.harmonization.QuickCombatClinic import QuickCombatClinic
 from clinical_combat.harmonization.QuickCombatPairwise import \
     QuickCombatPairwise
-from clinical_combat.harmonization.QuickCombatVanilla import QuickCombatVanilla
-from clinical_combat.harmonization.QuickCombatVanillaMid import QuickCombatVanillaMid
-
+from clinical_combat.harmonization.QuickCombatClassic import QuickCombatClassic
 
 
 def from_model_name(
@@ -24,8 +22,8 @@ def from_model_name(
     tau=1
 ):
 
-    if name == "vanilla":
-        QC = QuickCombatVanilla(
+    if name == "classic":
+        QC = QuickCombatClassic(
             ignore_sex_covariate=ignore_sex_covariate,
             ignore_handedness_covariate=ignore_handedness_covariate,
             use_empirical_bayes=use_empirical_bayes,
@@ -34,16 +32,6 @@ def from_model_name(
             regul_ref=regul_ref,
             regul_mov=regul_mov
         )    
-    elif name == "vanillamid":
-        QC = QuickCombatVanillaMid(
-            ignore_sex_covariate=ignore_sex_covariate,
-            ignore_handedness_covariate=ignore_handedness_covariate,
-            use_empirical_bayes=use_empirical_bayes,
-            limit_age_range=limit_age_range,
-            degree=degree,
-            regul_ref=regul_ref,
-            regul_mov=regul_mov
-        )
     elif name == "pairwise":
         QC = QuickCombatPairwise(
             ignore_sex_covariate=ignore_sex_covariate,
@@ -77,6 +65,6 @@ def from_model_filename(model_filename):
     with open(model_filename) as f:
         model_params = ast.literal_eval(f.readline()[2:])
 
-    QC = from_model_name(model_params["name"])
-    QC.initialize_from_model_params(model_filename)
-    return QC
+    model = from_model_name(model_params["name"])
+    model.initialize_from_model_params(model_filename)
+    return model

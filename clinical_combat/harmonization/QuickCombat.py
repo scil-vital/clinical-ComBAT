@@ -24,11 +24,13 @@ class QuickCombat(QuickHarmonizationMethod):
         alpha_ref=None,
         beta_ref=None,
         sigma_ref=None,
+        gamma_ref=None,
+        delta_ref=None,
         alpha_mov=None,
         beta_mov=None,
         sigma_mov=None,
-        gamma=None,
-        delta=None,
+        gamma_mov=None,
+        delta_mov=None,
         use_empirical_bayes=True,
         limit_age_range=False,
         degree=1,
@@ -42,16 +44,20 @@ class QuickCombat(QuickHarmonizationMethod):
             Covariates slope parameters of the reference site.
         sigma_ref: Array
             Standard deviation of the reference site.
+        gamma_ref: Array
+            Additive bias of the reference site.
+        delta_ref: Array
+            Multiplicative bias of the reference site.
         alpha_mov: Array
             Covariates intercept parameter of the moving site.
         beta_mov: Array
             Covariates slope parameters of the moving site.
         sigma_mov: Array
             Standard deviation of the moving site.
-        gamma: Array
-            Additive bias between the moving and the reference sites.
-        delta: Array
-            Multiplicative bias between the moving and the reference sites.
+        gamma_mov: Array
+            Additive bias of the moving site.
+        delta_mov: Array
+            Multiplicative bias of the moving site.
         use_empirical_bayes: bool
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
@@ -73,11 +79,13 @@ class QuickCombat(QuickHarmonizationMethod):
         self.alpha_ref = alpha_ref
         self.beta_ref = beta_ref
         self.sigma_ref = sigma_ref
+        self.gamma_ref = gamma_ref
+        self.delta_ref = delta_ref
         self.alpha_mov = alpha_mov
         self.beta_mov = beta_mov
         self.sigma_mov = sigma_mov
-        self.gamma = gamma
-        self.delta = delta
+        self.gamma_mov = gamma_mov
+        self.delta_mov = delta_mov
         self.use_empirical_bayes = use_empirical_bayes
         self.limit_age_range = limit_age_range
         self.degree = degree
@@ -91,49 +99,8 @@ class QuickCombat(QuickHarmonizationMethod):
         if self.regul_mov < 0 and not self.regul_mov == -1:
             raise AssertionError("regul_mov must be greater or equal to 0, or -1.")
 
-    def apply(self, data):
-        """
-        Apply the harmonization fitted model to data.
 
-        data: df
-            Dataframe representing the data to harmonized.
-
-        Returns
-        -------
-        harm_y: array
-            Harmonized data values.
-        """
-        if (
-            self.alpha_ref is None
-            or self.beta_ref is None
-            or self.sigma_ref is None
-            or self.alpha_mov is None
-            or self.beta_mov is None
-            or self.sigma_mov is None
-            or self.gamma is None
-            or self.delta is None
-        ):
-            raise AssertionError("Model parameters are not fitted.")
-
-        design, Y = self.get_design_matrices(data)
-        z = self.standardize_moving_data(design, Y)
-
-        harm_y = []
-
-        for i in range(len(design)):
-            covariate_effect_ref = np.dot(
-                design[i][1:, :].transpose(), self.beta_ref[i]
-            )
-
-            harm_y.append(
-                self.sigma_ref[i] / self.delta[i] * (z[i] - self.gamma[i])
-                + self.alpha_ref[i]
-                + covariate_effect_ref
-            )
-
-        return harm_y
-
-    def standardize_moving_data(self, X, Y):
+    def standardize_data(self, X, Y):
         """
         Abstract function.
         """
@@ -295,7 +262,7 @@ class QuickCombat(QuickHarmonizationMethod):
     @staticmethod
     def bhattacharyya_distance(target_dist, moving_dist):
         """
-        Compute the Bhattacharyya distance from 2 1D gaussian distributions.
+        Compute the Bhattacharyya distance from two 1D gaussian distributions.
 
         target_dist: array
             Target distribution.
@@ -345,11 +312,13 @@ class QuickCombat(QuickHarmonizationMethod):
         self.alpha_ref = params[1, 1:].astype("float64").transpose()
         self.beta_ref = params[2 : 2 + nb, 1:].astype("float64").transpose()
         self.sigma_ref = params[2 + nb, 1:].astype("float64").transpose()
-        self.alpha_mov = params[3 + nb, 1:].astype("float64").transpose()
-        self.beta_mov = params[4 + nb : 4 + nb + nb, 1:].astype("float64").transpose()
-        self.sigma_mov = params[4 + nb + nb, 1:].astype("float64").transpose()
-        self.gamma = params[-2, 1:].astype("float64").transpose()
-        self.delta = params[-1, 1:].astype("float64").transpose()
+        self.gamma_ref = params[3 + nb, 1:].astype("float64").transpose()
+        self.delta_ref = params[4 + nb, 1:].astype("float64").transpose()
+        self.alpha_mov = params[5 + nb, 1:].astype("float64").transpose()
+        self.beta_mov = params[6 + nb : 6 + nb + nb, 1:].astype("float64").transpose()
+        self.sigma_mov = params[6 + nb + nb, 1:].astype("float64").transpose()
+        self.gamma_mov = params[-2, 1:].astype("float64").transpose()
+        self.delta_mov = params[-1, 1:].astype("float64").transpose()
 
     def save_model(self, model_filename):
         """
@@ -365,11 +334,13 @@ class QuickCombat(QuickHarmonizationMethod):
                 self.alpha_ref.reshape(-1, 1),
                 self.beta_ref,
                 self.sigma_ref.reshape(-1, 1),
+                self.gamma_ref.reshape(-1, 1),
+                self.delta_ref.reshape(-1, 1),
                 self.alpha_mov.reshape(-1, 1),
                 self.beta_mov,
                 self.sigma_mov.reshape(-1, 1),
-                self.gamma.reshape(-1, 1),
-                self.delta.reshape(-1, 1),
+                self.gamma_mov.reshape(-1, 1),
+                self.delta_mov.reshape(-1, 1),
             ]
         ).transpose()
 
@@ -381,9 +352,8 @@ class QuickCombat(QuickHarmonizationMethod):
             for l in beta_labels:
                 param_labels.append(site + "_" + l)
             param_labels.append(site + "_std")
-
-        param_labels.append("gamma")
-        param_labels.append("delta")
+            param_labels.append(site + "_gamma")
+            param_labels.append(site + "_delta")
 
         param_labels = np.array(param_labels).reshape([-1, 1])
 
