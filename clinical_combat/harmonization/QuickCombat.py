@@ -100,7 +100,7 @@ class QuickCombat(QuickHarmonizationMethod):
             raise AssertionError("regul_mov must be greater or equal to 0, or -1.")
 
 
-    def standardize_data(self, X, Y):
+    def standardize_moving_data(self, X, Y):
         """
         Abstract function.
         """

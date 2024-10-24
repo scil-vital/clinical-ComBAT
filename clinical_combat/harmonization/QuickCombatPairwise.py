@@ -23,11 +23,11 @@ class QuickCombatPairwise(QuickCombat):
         super().set_model_fit_params(ref_data, mov_data)
         self.model_params["name"] = "pairwise"
 
-    def standardize_data(self, X, Y):
+    def standardize_moving_data(self, X, Y):
         """
-        Standardize the data (Y). Combat Pairwise standardize the moving site data with the
-        moving site intercept. Because the data are harmonize to the reference site, sigma is
-        obtained from the reference site data.
+        Standardize the data (Y). Combat Pairwise standardize the moving site data with 
+        the moving site intercept. Because the data are harmonize to the reference site, 
+        sigma is obtained from the reference site data.
 
         .. math::
         S_Y = (Y - X^T B - alpha_{mov}) / sigma_{ref}
@@ -73,7 +73,7 @@ class QuickCombatPairwise(QuickCombat):
             raise AssertionError("Model parameters are not fitted.")
 
         design, Y = self.get_design_matrices(data)
-        z = self.standardize_data(design, Y)
+        z = self.standardize_moving_data(design, Y)
 
         harm_y = []
 
@@ -122,7 +122,7 @@ class QuickCombatPairwise(QuickCombat):
             design_mov, y_mov, self.alpha_mov, self.beta_mov
         )
 
-        z = self.standardize_data(design_mov, y_mov)
+        z = self.standardize_moving_data(design_mov, y_mov)
 
         self.gamma_mov = np.array([np.mean(x) for x in z])
         self.delta_mov = np.array(

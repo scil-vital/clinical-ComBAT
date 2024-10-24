@@ -24,10 +24,10 @@ class QuickCombatClassic(QuickCombat):
         super().set_model_fit_params(ref_data, mov_data)
         self.model_params["name"] = "classic"
 
-    def standardize_data(self, X, Y):
+    def standardize_moving_data(self, X, Y):
         """
-        Standardize the data (Y). Combat standardize the moving site data with 
-        the jointly estimated intercept. 
+        Standardize the data (Y). Combat standardize the data with 
+        the jointly estimated covariate effect, intercept and standard deviation. 
 
         .. math::
         S_Y = (Y - X^T B - alpha) / sigma
@@ -74,7 +74,7 @@ class QuickCombatClassic(QuickCombat):
         self.alpha_ref = self.alpha_mov
         self.beta_ref = self.beta_mov
 
-        z = self.standardize_data(design_mov, y_mov)
+        z = self.standardize_moving_data(design_mov, y_mov)
         self.gamma_mov = np.array([np.mean(x) for x in z])
         self.delta_mov = np.array(
             [np.std(x - self.gamma_mov.reshape(-1, 1), ddof=1) for x in z]
@@ -87,7 +87,7 @@ class QuickCombatClassic(QuickCombat):
             )
         self.gamma_mov *= self.sigma_mov
         
-        z_ref = self.standardize_data(design_ref, y_ref)
+        z_ref = self.standardize_moving_data(design_ref, y_ref)
         self.gamma_ref = np.array([np.mean(x) for x in z_ref])
         self.delta_ref = np.array(
             [np.std(x - self.alpha_ref.reshape(-1, 1), ddof=1) for x in z_ref]
@@ -139,5 +139,5 @@ class QuickCombatClassic(QuickCombat):
                 + self.alpha_mov[i]              
                 + covariate_effect
             )
-
+            
         return harm_y

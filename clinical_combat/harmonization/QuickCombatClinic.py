@@ -200,7 +200,8 @@ class QuickCombatClinic(QuickCombatPairwise):
 
     def fit(self, ref_data, mov_data):
         """
-        Combat Clinic fit. The moving site beta and alpha are fitted using the moving site data.
+        Combat Clinic fit. 
+        The moving site beta and alpha are fitted using the moving site data.
         The reference site alpha and beta is fitted using the reference site data.
 
         ref_data: DataFrame
@@ -233,7 +234,7 @@ class QuickCombatClinic(QuickCombatPairwise):
             design_mov, y_mov, self.alpha_mov, self.beta_mov
         )
 
-        z = self.standardize_data(design_mov, y_mov)
+        z = self.standardize_moving_data(design_mov, y_mov)
 
         self.gamma_mov = np.array([np.mean(x) for x in z])
         self.delta_mov = np.array(
