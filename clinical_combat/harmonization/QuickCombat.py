@@ -598,7 +598,7 @@ class QuickCombat(QuickHarmonizationMethod):
             Standardized estimate of the additive bias. No empirical bayes.
         delta_hat:
             Standardized estimate of the multiplicative bias. No empirical bayes.
-        conv: flaot
+        conv: float
             Convergence, after this the loop will stop
 
         Returns
@@ -625,7 +625,7 @@ class QuickCombat(QuickHarmonizationMethod):
 
         # The number of subject per bundle may vary. Here we take the mean.
         n = int(np.mean([len(d) for d in sdat]))
-
+  
         g_old = gamma_hat.copy()
         d_old = delta_hat.copy()
 
@@ -642,7 +642,6 @@ class QuickCombat(QuickHarmonizationMethod):
 
             # postvar
             d_new = (0.5 * sum2 + b) / (n / 2.0 + a - 1.0)
-            d_new = d_new**0.5
             change = max(
                 (abs(g_new - g_old) / g_old).max(), (abs(d_new - d_old) / d_old).max()
             )
