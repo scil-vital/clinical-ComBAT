@@ -104,18 +104,21 @@ def main():
     args = parser.parse_args()
     random.seed(0)
 
-    data = pd.read_csv(args.in_file)
+    all_data = pd.read_csv(args.in_file)
 
     if args.HC:
-        data = data.query("disease == 'HC'")
+        all_data = data.query("disease == 'HC'")
 
     if args.nbr_sub > 0:
-        all_sids = list(data.sid.unique())
+        all_sids = list(all_data.sid.unique())
         random.shuffle(all_sids)
         sids = all_sids[: args.nbr_sub]
-        data = data.query("sid in @sids")
+        data = all_data.query("sid in @sids")
+    else:
+        data = all_data
 
     data = data.sort_values(by=["site", "sid", "bundle"])
+    all_data = all_data.sort_values(by=["site", "sid", "bundle"])
 
     if args.site_name is None:
         args.site_name = str(data.site.unique()) + "_corrupted"
@@ -134,10 +137,11 @@ def main():
     )
     model.bundle_names = data.bundle.unique()
 
-    design, y = model.get_design_matrices(data)
-    alpha, beta = QuickCombat.get_alpha_beta(design, y)
-    sigma = QuickCombat.get_sigma(design, y, alpha, beta)
+    all_design, all_y = model.get_design_matrices(all_data)    
+    alpha, beta = QuickCombat.get_alpha_beta(all_design, all_y)
+    sigma = QuickCombat.get_sigma(all_design, all_y, alpha, beta)
 
+    design, y = model.get_design_matrices(data)
     y_cor = []
     for i in range(len(design)):
         cov_effect = np.dot(design[i][1:, :].transpose(), beta[i])

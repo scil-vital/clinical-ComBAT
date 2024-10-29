@@ -371,7 +371,7 @@ class QuickCombat(QuickHarmonizationMethod):
 
             mat = mod_transpose_mod + regul_mat
             vec = np.dot(regul_mat, ref_w) + np.dot(mod.T, yy)
-
+            
             B = np.linalg.solve(mat, vec)
             Bs.append(B)
         Bs = np.array(Bs)
@@ -513,4 +513,5 @@ class QuickCombat(QuickHarmonizationMethod):
             g_old = g_new.copy()
             d_old = d_new.copy()
             count = count + 1
-        return g_new, d_new
+        
+        return g_new, d_new**0.5

@@ -184,19 +184,19 @@ class QuickCombatClassic(QuickCombat):
         
         z = self.standardize_moving_data(design_mov, y_mov)
         self.gamma_mov = np.array([np.mean(x) for x in z])
-        self.delta_mov = np.array([np.var(x, ddof=1) for x in z])
+        self.delta_mov = np.array([np.std(x, ddof=1) for x in z])
 
         if self.use_empirical_bayes:
             self.gamma_mov, self.delta_mov = QuickCombat.emperical_bayes_estimate(
                 z,
                 self.gamma_mov,
-                self.delta_mov,
+                self.delta_mov**2,
             )
         self.gamma_mov *= self.sigma
         
         z_ref = self.standardize_moving_data(design_ref, y_ref)
         self.gamma_ref = np.array([np.mean(x) for x in z_ref])
-        self.delta_ref = np.array([np.var(x, ddof=1) for x in z_ref])
+        self.delta_ref = np.array([np.std(x, ddof=1) for x in z_ref])
         self.gamma_ref *= self.sigma
         
         self.set_model_fit_params(ref_data, mov_data)
