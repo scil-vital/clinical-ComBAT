@@ -33,7 +33,7 @@ def remove_outliers(ref_data, mov_data, args):
 
         outliers_idx += find_outliers_IQR(data)
 
-    get_metrics(outliers_idx, mov_data)
+    QC.metrics = get_metrics(outliers_idx, mov_data)
 
     if REMOVE_WHOLE_PATIENT:
         outlier_patients_ids = mov_data.loc[outliers_idx]['sid'].unique().tolist()
@@ -45,6 +45,7 @@ def remove_outliers(ref_data, mov_data, args):
     return mov_data
 
 def create_plots(mov_data, QC):
+    foldername = f"PLOTS/{mov_data['site'].unique()[0]}/"
     mov_data_HC = mov_data.query("disease == 'HC'")
     mov_data_SICK = mov_data.query("disease != 'HC'")
     
@@ -59,35 +60,37 @@ def create_plots(mov_data, QC):
 
     plt.scatter(design_mov_HC[0][3], y_no_cov_HC[0],color='blue')
     plt.scatter(design_mov_SICK[0][3], y_no_cov_SICK[0],color='red')
-    plt.savefig("PLOTS/no_cov.png")
+    plt.savefig(foldername+"no_cov.png")
     plt.clf()
     plt.scatter(design_mov_HC[0][3], y_mov_HC[0],color='blue')
     plt.scatter(design_mov_SICK[0][3], y_mov_SICK[0],color='red')
-    plt.savefig("PLOTS/yes_cov.png")
+    plt.savefig(foldername+"yes_cov.png")
     plt.clf()
     plot = sns.distplot(y_no_cov[0])
     fig = plot.get_figure()
-    fig.savefig("PLOTS/distribution.png") 
+    fig.savefig(foldername + "distribution.png") 
     plt.clf()
 
 
     plt.scatter(design_mov_HC[0][3], y_no_cov_HC[0])
-    plt.savefig("PLOTS/no_cov_HC.png")
+    plt.savefig(foldername + "no_cov_HC.png")
     plt.clf()
     plt.scatter(design_mov_HC[0][3], y_mov_HC[0])
-    plt.savefig("PLOTS/yes_cov_HC.png")
+    plt.savefig(foldername +"yes_cov_HC.png")
     plt.clf()
     plot = sns.distplot(y_no_cov_HC[0])
     fig = plot.get_figure()
-    fig.savefig("PLOTS/distribution_HC.png") 
+    fig.savefig(foldername + "distribution_HC.png") 
     plt.clf()
 
 def get_metrics(outliers_idx, mov_data):
-    outliers = mov_data.loc[outliers_idx]
-    outliers_sid = outliers['sid'].unique().tolist() 
-    outlier_patients = outliers['sid'].value_counts()
+
 
     mov_data['is_malade'] = mov_data['disease'].apply(lambda x: 0 if x == 'HC' else 1)
+    outliers = mov_data.loc[outliers_idx]
+    outliers_sid = outliers['sid'].unique().tolist() 
+
+
     mov_data['is_outlier'] = mov_data['sid'].apply(lambda x: 1 if x in outliers_sid else 0)
 
     patients = mov_data.drop_duplicates(subset='sid')
@@ -110,7 +113,22 @@ def get_metrics(outliers_idx, mov_data):
     print(f"Rappel (Recall) :{tp} / {tp+fn} = {recall:.3f}")
     print(f"Taux de faux positifs : {fp} / {fp+tn} = {taux_faux_positifs:.3f}")
     print(f"F1 score : {f1:.3f}")
-    print('yo')
+    
+    metrics = {
+        'true_positives': tp,
+        'false_positives': fp,
+        'true_negatives': tn,
+        'false_negatives': fn,
+        'precision': precision,
+        'recall': recall,
+        'taux_faux_positifs': taux_faux_positifs,
+        'f1_score': f1,
+        'outliers': outliers
+        
+    }
+
+    return metrics
+    
 
 
 
