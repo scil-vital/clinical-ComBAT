@@ -489,7 +489,7 @@ class QuickCombat(QuickHarmonizationMethod):
         b = QuickCombat.estimate_b_prior(delta_hat)
 
         # The number of subject per bundle may vary. Here we take the mean.
-        n = int(np.mean([len(d) for d in sdat]))
+        n = np.array([len(d) for d in sdat])
   
         g_old = gamma_hat.copy()
         d_old = delta_hat.copy()
@@ -498,6 +498,7 @@ class QuickCombat(QuickHarmonizationMethod):
         count = 0
         while change > conv or count > 1000:
             # postmean
+            import pdb; pdb.set_trace()
             g_new = (t2 * n * gamma_hat + d_old * gamma_bar) / (t2 * n + d_old)
 
             sum2 = []
