@@ -21,14 +21,6 @@ class QuickCombat(QuickHarmonizationMethod):
         model_params=None,
         ignore_sex_covariate=False,
         ignore_handedness_covariate=False,
-        alpha_ref=None,
-        beta_ref=None,
-        sigma_ref=None,
-        alpha_mov=None,
-        beta_mov=None,
-        sigma_mov=None,
-        gamma=None,
-        delta=None,
         use_empirical_bayes=True,
         limit_age_range=False,
         degree=1,
@@ -36,22 +28,6 @@ class QuickCombat(QuickHarmonizationMethod):
         regul_mov=0,
     ):
         """
-        alpha_ref: Array
-            Covariates intercept parameter of the reference site.
-        beta_ref: Array
-            Covariates slope parameters of the reference site.
-        sigma_ref: Array
-            Standard deviation of the reference site.
-        alpha_mov: Array
-            Covariates intercept parameter of the moving site.
-        beta_mov: Array
-            Covariates slope parameters of the moving site.
-        sigma_mov: Array
-            Standard deviation of the moving site.
-        gamma: Array
-            Additive bias between the moving and the reference sites.
-        delta: Array
-            Multiplicative bias between the moving and the reference sites.
         use_empirical_bayes: bool
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
@@ -70,14 +46,6 @@ class QuickCombat(QuickHarmonizationMethod):
             ignore_sex_covariate,
             ignore_handedness_covariate,
         )
-        self.alpha_ref = alpha_ref
-        self.beta_ref = beta_ref
-        self.sigma_ref = sigma_ref
-        self.alpha_mov = alpha_mov
-        self.beta_mov = beta_mov
-        self.sigma_mov = sigma_mov
-        self.gamma = gamma
-        self.delta = delta
         self.use_empirical_bayes = use_empirical_bayes
         self.limit_age_range = limit_age_range
         self.degree = degree
@@ -91,47 +59,6 @@ class QuickCombat(QuickHarmonizationMethod):
         if self.regul_mov < 0 and not self.regul_mov == -1:
             raise AssertionError("regul_mov must be greater or equal to 0, or -1.")
 
-    def apply(self, data):
-        """
-        Apply the harmonization fitted model to data.
-
-        data: df
-            Dataframe representing the data to harmonized.
-
-        Returns
-        -------
-        harm_y: array
-            Harmonized data values.
-        """
-        if (
-            self.alpha_ref is None
-            or self.beta_ref is None
-            or self.sigma_ref is None
-            or self.alpha_mov is None
-            or self.beta_mov is None
-            or self.sigma_mov is None
-            or self.gamma is None
-            or self.delta is None
-        ):
-            raise AssertionError("Model parameters are not fitted.")
-
-        design, Y = self.get_design_matrices(data)
-        z = self.standardize_moving_data(design, Y)
-
-        harm_y = []
-
-        for i in range(len(design)):
-            covariate_effect_ref = np.dot(
-                design[i][1:, :].transpose(), self.beta_ref[i]
-            )
-
-            harm_y.append(
-                self.sigma_ref[i] / self.delta[i] * (z[i] - self.gamma[i])
-                + self.alpha_ref[i]
-                + covariate_effect_ref
-            )
-
-        return harm_y
 
     def standardize_moving_data(self, X, Y):
         """
@@ -139,46 +66,6 @@ class QuickCombat(QuickHarmonizationMethod):
         """
         pass
 
-    def predict(self, ages, bundle, moving_site=True):
-        """
-        Use the model to predict values.
-
-        ages: array
-            Age use to do the prediction.
-
-        bundle: str
-            Bundle to use.
-
-        Returns
-        -------
-        y: array
-            Model-predicted value for the input ages.
-        """
-
-        design = []
-        design.append(np.ones(len(ages)))  # intercept
-
-        if not self.ignore_sex_covariate:
-            design.append(np.ones(len(ages)) * 0.5)
-
-        if not self.ignore_handedness_covariate:
-            design.append(np.ones(len(ages)) * 0.5)
-
-        # Elevate to a polynomial of degree the age data
-        for degree in np.arange(1, self.degree + 1):
-            design.append(ages**degree)
-
-        design = np.array(design)
-
-        idx = list(self.bundle_names).index(bundle)
-
-        if moving_site:
-            B = np.hstack([self.alpha_mov[idx], self.beta_mov[idx]])
-        else:
-            B = np.hstack([self.alpha_ref[idx], self.beta_ref[idx]])
-
-        y = np.dot(design.transpose(), B)
-        return y
 
     def prepare_data(self, ref_data, mov_data):
         """
@@ -295,7 +182,7 @@ class QuickCombat(QuickHarmonizationMethod):
     @staticmethod
     def bhattacharyya_distance(target_dist, moving_dist):
         """
-        Compute the Bhattacharyya distance from 2 1D gaussian distributions.
+        Compute the Bhattacharyya distance from two 1D gaussian distributions.
 
         target_dist: array
             Target distribution.
@@ -331,65 +218,12 @@ class QuickCombat(QuickHarmonizationMethod):
 
         params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
 
+        self.use_empirical_bayes = self.model_params["use_empirical_bayes"]
+        self.limit_age_range = self.model_params["limit_age_range"]
         self.degree = self.model_params["degree"]
         self.regul_ref = self.model_params["regul_ref"]
         self.regul_mov = self.model_params["regul_mov"]
-        self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
-        nb = self.model_params["nbr_beta_params"]
-        self.ignore_handedness_covariate = self.model_params[
-            "ignore_handedness_covariate"
-        ]
-        self.ignore_sex_covariate = self.model_params["ignore_sex_covariate"]
 
-        self.bundle_names = params[0, 1:]
-        self.alpha_ref = params[1, 1:].astype("float64").transpose()
-        self.beta_ref = params[2 : 2 + nb, 1:].astype("float64").transpose()
-        self.sigma_ref = params[2 + nb, 1:].astype("float64").transpose()
-        self.alpha_mov = params[3 + nb, 1:].astype("float64").transpose()
-        self.beta_mov = params[4 + nb : 4 + nb + nb, 1:].astype("float64").transpose()
-        self.sigma_mov = params[4 + nb + nb, 1:].astype("float64").transpose()
-        self.gamma = params[-2, 1:].astype("float64").transpose()
-        self.delta = params[-1, 1:].astype("float64").transpose()
-
-    def save_model(self, model_filename):
-        """
-        Save the harmonization model to file.
-
-        model_filename: str
-            Model filename.
-
-        """
-        params = np.hstack(
-            [
-                self.bundle_names.reshape(-1, 1),
-                self.alpha_ref.reshape(-1, 1),
-                self.beta_ref,
-                self.sigma_ref.reshape(-1, 1),
-                self.alpha_mov.reshape(-1, 1),
-                self.beta_mov,
-                self.sigma_mov.reshape(-1, 1),
-                self.gamma.reshape(-1, 1),
-                self.delta.reshape(-1, 1),
-            ]
-        ).transpose()
-
-        beta_labels = self.get_beta_labels()
-        param_labels = ["bundle_names"]
-
-        for site in ["ref", "mov"]:
-            param_labels.append(site + "_intercept")
-            for l in beta_labels:
-                param_labels.append(site + "_" + l)
-            param_labels.append(site + "_std")
-
-        param_labels.append("gamma")
-        param_labels.append("delta")
-
-        param_labels = np.array(param_labels).reshape([-1, 1])
-
-        params = np.hstack([param_labels, params])
-        header = str(self.model_params)
-        np.savetxt(model_filename, params, delimiter=",", fmt="%s", header=header)
 
     def set_model_fit_params(self, ref_data, mov_data):
         """
@@ -410,6 +244,7 @@ class QuickCombat(QuickHarmonizationMethod):
         self.model_params["degree"] = self.degree
         self.model_params["regul_ref"] = self.regul_ref
         self.model_params["regul_mov"] = self.regul_mov
+        
 
     def get_beta_labels(self):
         """
@@ -536,7 +371,7 @@ class QuickCombat(QuickHarmonizationMethod):
 
             mat = mod_transpose_mod + regul_mat
             vec = np.dot(regul_mat, ref_w) + np.dot(mod.T, yy)
-
+            
             B = np.linalg.solve(mat, vec)
             Bs.append(B)
         Bs = np.array(Bs)
@@ -628,7 +463,7 @@ class QuickCombat(QuickHarmonizationMethod):
             Standardized estimate of the additive bias. No empirical bayes.
         delta_hat:
             Standardized estimate of the multiplicative bias. No empirical bayes.
-        conv: flaot
+        conv: float
             Convergence, after this the loop will stop
 
         Returns
@@ -653,7 +488,9 @@ class QuickCombat(QuickHarmonizationMethod):
         # b: scale of the multplicative bias (scale in an inver-gamma)
         b = QuickCombat.estimate_b_prior(delta_hat)
 
-        n = len(sdat)
+        # The number of subject per bundle may vary. Here we take the mean.
+        n = np.array([len(d) for d in sdat])
+  
         g_old = gamma_hat.copy()
         d_old = delta_hat.copy()
 
@@ -670,11 +507,11 @@ class QuickCombat(QuickHarmonizationMethod):
 
             # postvar
             d_new = (0.5 * sum2 + b) / (n / 2.0 + a - 1.0)
-
             change = max(
                 (abs(g_new - g_old) / g_old).max(), (abs(d_new - d_old) / d_old).max()
             )
-            g_old = g_new
-            d_old = d_new
+            g_old = g_new.copy()
+            d_old = d_new.copy()
             count = count + 1
-        return g_new, d_new
+        
+        return g_new, d_new**0.5

@@ -22,10 +22,6 @@ class QuickHarmonizationMethod:
             List of bundle names.
         model_params: Dict
             Model parameters and data info.
-        bundle_names: Array
-            List of bundle names.
-        model_params: Dict
-            Model parameters and data info.
         ignore_sex_covariate: bool
             If true, do not use sex as a covariate
         ignore_handedness_covariate: bool

@@ -4,3 +4,4 @@
 *.c
 *.cpp
 *.png
+scripts/tests/out
