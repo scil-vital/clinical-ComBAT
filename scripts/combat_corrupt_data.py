@@ -77,6 +77,22 @@ def _build_arg_parser():
         action="store_true",
         help="Only select HC.",
     )
+    p.add_argument(
+        "--degree",
+        type=int,
+        help="Degree of the polynomial fit. [%(default)s]",
+        default="1",
+    )
+    p.add_argument(
+        "--ignore_sex",
+        action="store_true",
+        help="If set, ignore the sex covariate in the data.",
+    )
+    p.add_argument(
+        "--ignore_handedness",
+        action="store_true",
+        help="If set, ignore the handedness covariate in the data.",
+    )
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -88,36 +104,44 @@ def main():
     args = parser.parse_args()
     random.seed(0)
 
-    data = pd.read_csv(args.in_file)
+    all_data = pd.read_csv(args.in_file)
 
     if args.HC:
-        data = data.query("disease == 'HC'")
+        all_data = all_data.query("disease == 'HC'")
 
     if args.nbr_sub > 0:
-        all_sids = list(data.sid.unique())
+        all_sids = list(all_data.sid.unique())
         random.shuffle(all_sids)
         sids = all_sids[: args.nbr_sub]
-        data = data.query("sid in @sids")
+        data = all_data.query("sid in @sids")
+    else:
+        data = all_data
 
     data = data.sort_values(by=["site", "sid", "bundle"])
+    all_data = all_data.sort_values(by=["site", "sid", "bundle"])
 
     if args.site_name is None:
         args.site_name = str(data.site.unique()) + "_corrupted"
 
-    QC = from_model_name(
-        "pairwise",
-        ignore_handedness_covariate=True,
-        ignore_sex_covariate=True,
+    model = from_model_name(
+        "clinic",
+        ignore_handedness_covariate=args.ignore_handedness,
+        ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=False,
         limit_age_range=False,
-        degree=1,
+        degree=args.degree,
+        regul_ref=0,
+        regul_mov=0,
+        nu=0,
+        tau=2,
     )
-    QC.bundle_names = data.bundle.unique()
+    model.bundle_names = data.bundle.unique()
 
-    design, y = QC.get_design_matrices(data)
-    alpha, beta = QuickCombat.get_alpha_beta(design, y)
-    sigma = QuickCombat.get_sigma(design, y, alpha, beta)
+    all_design, all_y = model.get_design_matrices(all_data)    
+    alpha, beta = QuickCombat.get_alpha_beta(all_design, all_y)
+    sigma = QuickCombat.get_sigma(all_design, all_y, alpha, beta)
 
+    design, y = model.get_design_matrices(data)
     y_cor = []
     for i in range(len(design)):
         cov_effect = np.dot(design[i][1:, :].transpose(), beta[i])
@@ -138,7 +162,7 @@ def main():
     save_quickcombat_data_to_csv(
         data,
         np.array(y_cor),
-        QC.bundle_names,
+        model.bundle_names,
         np.unique(data["metric"]),
         "raw",
         "raw",

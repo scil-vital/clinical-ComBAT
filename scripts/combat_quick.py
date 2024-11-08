@@ -7,15 +7,12 @@ This script calls combat_quick_fit.py, combat_quick_apply.py, combat_visualize_m
 combat_visualize_harmonization.py. The exact commands are printed in the terminal.
 
 Harmonization methods:
+    classic:
+            uses both moving and reference data to fit the covariates regression parameters
+            (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
     clinic (default):
             uses a priori from the reference site to fit the moving site
             (Beta_mov, variance)
-    vanilla:
-            uses both moving and reference data to fit the covariates regression parameters
-            (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
-    pairwise:
-            uses only the moving data to to fit the covariates regression parameters
-            (Beta_mov)
 
 NOTE: the harmonization parameters (regul, degree, nu, tau) are preset according to the
       harmonization method chosen. See default settings.
@@ -25,8 +22,8 @@ Examples:
 # Harmonized with the Clinic method with un polynomial degree of 2
 combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
 
-# Harmonized with the Vanilla method (i.e. Fortin et al., (2017) method)
-combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method vanilla
+# Harmonized with the Classic method (i.e. Fortin et al., (2017) method)
+combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
 
 """
 import argparse
@@ -74,7 +71,7 @@ def _build_arg_parser():
         "-m",
         "--method",
         default="clinic",
-        choices=["vanilla", "pairwise", "clinic"],
+        choices=["classic", "clinic"],
         help="Harmonization method.",
     )
     p.add_argument(
@@ -114,13 +111,13 @@ def _build_arg_parser():
         "--regul_mov",
         type=float,
         help="Regularization parameter for the moving site data. Set to '-1' for automatic tuning "
-        + "[default=0 for vanilla and pairwise; -1 for clinic]",
+        + "[default=0 for classic; -1 for clinic]",
     )
     p.add_argument(
         "--degree",
         type=int,
         help="Degree of the polynomial fit in Combat. "
-        + "[default=1 for vanilla and pairwise; 2 for clinic].",
+        + "[default=1 for classic; 2 for clinic].",
     )
     p.add_argument(
         "--nu",
@@ -141,6 +138,12 @@ def _build_arg_parser():
         nargs="+",
         help="List of bundle to use for figures. To plot all bundles use "
         "--bundles all. ['mni_IIT_mask_skeletonFA'].",
+    )
+    p.add_argument(
+        "--degree_qc",
+        type=int,
+        help="Degree for QC fit. By default it uses the same as the model.",
+        default=0,
     )
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -324,6 +327,7 @@ def main():
     ##########
     print("\n\n\n Quality control :")
     print("\n   Raw data ")
+
     cmd = (
         "combat_quick_QC.py"
         + " "
@@ -334,6 +338,8 @@ def main():
         + os.path.join(args.out_dir, args.output_model_filename)
         + " -v "
         + str(args.verbose)
+        + " --degree_qc " 
+        + str(args.degree_qc)
         + " --out_dir "
         + args.out_dir
     )
@@ -352,6 +358,10 @@ def main():
         + os.path.join(args.out_dir, args.output_results_filename)
         + " "
         + os.path.join(args.out_dir, args.output_model_filename)
+        + " -v "
+        + str(args.verbose)
+        + " --degree_qc " 
+        + str(args.degree_qc)
         + " --out_dir "
         + args.out_dir
     )

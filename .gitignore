@@ -1,3 +1,11 @@
+*.pyc
+*.pyd
+*.so
+*.c
+*.cpp
+*.png
+scripts/tests/out
+
 __pycache__/
 *.py[cod]
 *$py.class
