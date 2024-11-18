@@ -159,9 +159,31 @@ class QuickCombatClassic(QuickCombat):
                 (Y[i] - self.alpha[i] - covariate_effect) / self.sigma[i]
             )
         return s_y
+    
+    def remove_covariate_effect(self, X, Y):
+        """
+        Standardize the data (Y). Combat Vanilla standardize the moving site data with the
+        reference site intercept. Because the data are harmonize to the reference site, sigma is
+        obtained from the reference site data.
+
+        .. math::
+        S_Y = (Y - X^T B - alpha_{ref}) / sigma_{ref}
+
+        X: array
+            The design matrix of the covariates.
+        Y: array
+            The values corresponding to the design matrix.
+        """
+        s_y = []
+        for i in range(len(X)):
+            covariate_effect = np.dot(X[i][1:, :].transpose(), self.beta[i])
+            s_y.append(
+                (Y[i] - covariate_effect)
+            )
+        return s_y
 
 
-    def fit(self, ref_data, mov_data):
+    def fit(self, ref_data, mov_data, HC_only=True):
         """
         Combat Classic fit. The moving site beta and alpha are fitted using all 
         data.
@@ -171,7 +193,7 @@ class QuickCombatClassic(QuickCombat):
         mov_data: DataFrame
             Data of the moving site.
         """
-        ref_data, mov_data = self.prepare_data(ref_data, mov_data)
+        ref_data, mov_data = self.prepare_data(ref_data, mov_data, HC_only)
  
         # fit intercept and covariates of the moving site using all data
         all_data = pd.concat([ref_data, mov_data])

@@ -24,6 +24,7 @@ compilation_viz
 DONNES
 RES
 PLOTS
+DEBUG
 
 .venv
 .vscode

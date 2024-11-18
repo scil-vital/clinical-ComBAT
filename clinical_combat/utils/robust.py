@@ -43,35 +43,38 @@ def remove_outliers(ref_data, mov_data, args):
 
     mov_data = mov_data.drop(columns=['mean_no_cov'])
     # Calculate and save metrics
-    metrics = get_metrics(outliers_idx, mov_data)
-    rwp_str = "RWP" if rwp else "NoRWP"
     site = mov_data['site'].unique()[0]
-    metrics_filename = os.path.join(args.out_dir,f"metrics_{site}_{args.robust}_{rwp_str}.json")
-    metrics = {k: (int(v) if isinstance(v, np.integer) else v) for k, v in metrics.items()}
-    with open(metrics_filename, 'w') as json_file:
-        json.dump(metrics, json_file)
+    metrics = get_metrics(outliers_idx, mov_data)
+    metrics['site'] = site
+
+
+    rwp_str = "RWP" if rwp else "NoRWP"
+    metrics_filename = os.path.join(args.out_dir,f"metrics_{site}_{args.robust}_{rwp_str}.csv")
+    metrics.to_csv(metrics_filename, index=True)
 
     # Save outliers
     outliers_filename = os.path.join(args.out_dir,f"outliers_{site}_{args.robust}_{rwp_str}.csv")
     mov_data.loc[outliers_idx].to_csv(outliers_filename, index=True)
 
-    # Vérification des données sauvegardées
-    with open(metrics_filename, 'r') as json_file:
-        loaded_metrics = json.load(json_file)
-
+    loaded_metrics = pd.read_csv(metrics_filename, index_col=0)
     # Chargement des outliers avec les index correctement
     loaded_outliers_df = pd.read_csv(outliers_filename, index_col=0)
 
 
-    if metrics == loaded_metrics and mov_data.loc[outliers_idx].equals(loaded_outliers_df):
+    if loaded_metrics.equals(metrics) and mov_data.loc[outliers_idx].equals(loaded_outliers_df):
         print("Test OK: The metrics and outliers match.")
     else:
         print("Test Failed: The metrics and outliers do not match.")
+        print(loaded_metrics == metrics)
 
     # Remove outliers from movement data
     if rwp:
         outlier_patients_ids = mov_data.loc[outliers_idx]['sid'].unique().tolist()
-        mov_data = mov_data[~mov_data['sid'].isin(outlier_patients_ids)]
+        if len(outlier_patients_ids) < (len(mov_data['sid'].unique().tolist())-1):
+            mov_data = mov_data[~mov_data['sid'].isin(outlier_patients_ids)]
+        else:
+            print("All patients are outliers. RWP not applied.")
+            mov_data = mov_data.drop(outliers_idx)
     else:
         mov_data = mov_data.drop(outliers_idx)
     return mov_data
@@ -108,7 +111,7 @@ def get_metrics(outliers_idx, mov_data):
     print(f"Taux de faux positifs : {fp} / {fp+tn} = {taux_faux_positifs:.3f}")
     print(f"F1 score : {f1:.3f}")
     
-    metrics = {
+    metrics = [{
         'true_positives': tp,
         'false_positives': fp,
         'true_negatives': tn,
@@ -118,9 +121,9 @@ def get_metrics(outliers_idx, mov_data):
         'taux_faux_positifs': taux_faux_positifs,
         'f1_score': f1
         
-    }
+    }]
 
-    return metrics
+    return pd.DataFrame(metrics)
 
 
 def find_outliers_IQR(data):

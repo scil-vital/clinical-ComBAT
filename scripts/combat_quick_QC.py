@@ -73,15 +73,36 @@ def _build_arg_parser():
 
     return p
 
-def QC(ref_data_file,mov_data_file,model):
+def QC(ref_data_file,mov_data_file,model_file, ignore_bundles=['left_ventricle', 'right_ventricle'], degree_qc=0):                    
+    ref_data = pd.read_csv(ref_data_file).query("disease == 'HC'") 
+    ref_data = ref_data[~ref_data['bundle'].isin(ignore_bundles)]
+    mov_data = pd.read_csv(mov_data_file).query("disease == 'HC'")
+    mov_data = mov_data[~mov_data['bundle'].isin(ignore_bundles)]
 
-    QC = from_model_filename(model)
+    logging.info("Bundles: %s will be ignored.", ignore_bundles)
+
+
+    model = from_model_filename(model_file)
+
+    if degree_qc == 0:
+        degree_qc = model.degree
+
+    QC = from_model_name(
+        "clinic",
+        ignore_handedness_covariate=model.ignore_handedness_covariate,
+        ignore_sex_covariate=model.ignore_sex_covariate,
+        use_empirical_bayes=False,
+        limit_age_range=False,
+        degree=degree_qc,
+        regul_ref=0,
+        regul_mov=0,
+        nu=0,
+        tau=2,
+    )
+    QC.fit(ref_data, ref_data)
 
     metric_name = QC.model_params["metric_name"]
-    ref_site = QC.model_params["ref_site"]
-
-    ref_data = pd.read_csv(ref_data_file).query("disease == 'HC'")
-    mov_data = pd.read_csv(mov_data_file).query("disease == 'HC'")
+    ref_site = QC.model_params["ref_site"]    
 
     # Check if moving site is a string
     if mov_data.site.dtype != "str":
