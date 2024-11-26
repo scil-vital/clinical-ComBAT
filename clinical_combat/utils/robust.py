@@ -10,6 +10,7 @@ import os
 
 
 def remove_outliers(ref_data, mov_data, args):
+    print("Removing outliers with method", args.robust)
 
     find_outlier = ROBUST_METHODS.get(args.robust)
     rwp = args.rwp
@@ -59,6 +60,7 @@ def remove_outliers(ref_data, mov_data, args):
 
     # Remove outliers from movement data
     if rwp:
+        print("RWP is applied")
         outlier_patients_ids = mov_data.loc[outliers_idx]['sid'].unique().tolist()
         if len(outlier_patients_ids) < (len(mov_data['sid'].unique().tolist())-1):
             mov_data = mov_data[~mov_data['sid'].isin(outlier_patients_ids)]
@@ -79,7 +81,7 @@ def get_metrics(outliers_idx, mov_data):
     
     for bundle in mov_data['bundle'].unique():
         bundle_data = mov_data[mov_data['bundle'] == bundle]
-        plot_outliers_data(bundle_data)
+        #plot_outliers_data(bundle_data)
 
         y_true = bundle_data['is_malade'].tolist()
         y_pred = bundle_data['is_outlier'].tolist()
