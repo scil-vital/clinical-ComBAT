@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Dataframe computation and manipulation functions for viewing harmonization and raw data.
 

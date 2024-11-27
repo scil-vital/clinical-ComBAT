@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """
 Script to compute and apply the transfer function from a moving site to a reference site.
@@ -6,7 +7,7 @@ This script calls combat_quick_fit.py, combat_quick_apply.py, combat_visualize_m
 combat_visualize_harmonization.py. The exact commands are printed in the terminal.
 
 Harmonization method:
-    vanilla:
+    classic:
             uses both moving and reference data to fit the covariates regression parameters
             (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
 
@@ -15,8 +16,9 @@ NOTE: the harmonization parameters are preset. See default settings.
 
 Example:
 
-# Harmonized with the Vanilla method (i.e. Fortin et al., (2017) method)
-combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz
+# Harmonized with the Classic method (i.e. Fortin et al., (2017) method)
+combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
+
 
 """
 import argparse
@@ -52,14 +54,12 @@ def _build_arg_parser():
         + "['ref_site-moving-site.model.metric_name.csv']",
         default="",
     )
-
     p.add_argument(
         "--output_results_filename",
         help="Output CSV of the harmonized data filename. "
         + "['ref_site-moving-site.metric_name.model.res.csv']",
         default="",
     )
-
     p.add_argument(
         "--ignore_sex",
         action="store_true",
@@ -81,12 +81,17 @@ def _build_arg_parser():
         action="store_true",
         help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
     )
-
     p.add_argument(
         "--bundles",
         nargs="+",
         help="List of bundle to use for figures. To plot all bundles use "
         "--bundles all. ['mni_IIT_mask_skeletonFA'].",
+    )
+    p.add_argument(
+        "--degree_qc",
+        type=int,
+        help="Degree for QC fit. By default it uses the same as the model.",
+        default=0,
     )
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -252,6 +257,7 @@ def main():
     ##########
     print("\n\n\n Quality control :")
     print("\n   Raw data ")
+
     cmd = (
         "combat_quick_QC.py"
         + " "
@@ -262,6 +268,8 @@ def main():
         + os.path.join(args.out_dir, args.output_model_filename)
         + " -v "
         + str(args.verbose)
+        + " --degree_qc " 
+        + str(args.degree_qc)
         + " --out_dir "
         + args.out_dir
     )
@@ -280,6 +288,10 @@ def main():
         + os.path.join(args.out_dir, args.output_results_filename)
         + " "
         + os.path.join(args.out_dir, args.output_model_filename)
+        + " -v "
+        + str(args.verbose)
+        + " --degree_qc " 
+        + str(args.degree_qc)
         + " --out_dir "
         + args.out_dir
     )

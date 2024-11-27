@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import ast
 import logging
 
@@ -17,10 +18,6 @@ class QuickHarmonizationMethod:
         ignore_handedness_covariate=False,
     ):
         """
-        bundle_names: Array
-            List of bundle names.
-        model_params: Dict
-            Model parameters and data info.
         bundle_names: Array
             List of bundle names.
         model_params: Dict

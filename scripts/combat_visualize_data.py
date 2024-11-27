@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Visualizes with scatterplot a list of raw or harmonized CSV files.
 

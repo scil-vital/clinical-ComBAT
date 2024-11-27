@@ -1,0 +1,7 @@
+*.pyc
+*.pyd
+*.so
+*.c
+*.cpp
+*.png
+scripts/tests/out

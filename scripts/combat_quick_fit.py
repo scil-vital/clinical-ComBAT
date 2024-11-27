@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Script to compute the transfer function from a moving site to a reference site.
 
 Harmonization method:
-    vanilla: uses both moving and reference data to fit the covariate
+    classic: uses both moving and reference data to fit the covariate
              regression parameters (Beta_mov).
 
 Examples:
-# Use the vanilla method to harmonize the moving site data to the reference site data (linear)
-combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz
+# Use the classic method to harmonize the moving site data to the reference site data 
+# (linear)
+combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
+
 """
 
 import argparse
@@ -18,7 +21,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from vanilla_combat.harmonization import QuickCombatVanilla
+from vanilla_combat.harmonization import QuickCombatClassic
 from vanilla_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -71,6 +74,12 @@ def _build_arg_parser():
         action="store_true",
         help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
     )
+    p.add_argument(
+        "--ignore_bundles",
+        nargs="+",
+        help="List of bundle to ignore.",
+        default=['left_ventricle', 'right_ventricle']
+    )
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -85,7 +94,11 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     ref_data = pd.read_csv(args.ref_data)
+    ref_data = ref_data[~ref_data['bundle'].isin(args.ignore_bundles)]
     mov_data = pd.read_csv(args.mov_data)
+    mov_data = mov_data[~mov_data['bundle'].isin(args.ignore_bundles)]
+
+    logging.info("Bundles: %s will be ignored.", args.ignore_bundles)
 
     # Check if moving site is a string
     if mov_data.site.dtype != "str":
@@ -115,7 +128,7 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
     assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
 
-    QC = QuickCombatVanilla(
+    QC = QuickCombatClassic(
         ignore_handedness_covariate=args.ignore_handedness,
         ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=not args.no_empirical_bayes,
