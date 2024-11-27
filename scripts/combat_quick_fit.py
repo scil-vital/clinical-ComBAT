@@ -21,8 +21,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from vanilla_combat.harmonization import QuickCombatClassic
-from vanilla_combat.utils.scilpy_utils import (
+from classic_combat.harmonization import QuickCombatClassic
+from classic_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
     assert_outputs_exist,

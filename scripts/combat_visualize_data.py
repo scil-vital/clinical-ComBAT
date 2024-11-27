@@ -20,14 +20,14 @@ import argparse
 import logging
 import os
 
-from vanilla_combat.utils.combatio import load_sites_data
-from vanilla_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
-from vanilla_combat.visualization.plots import (
+from classic_combat.utils.combatio import load_sites_data
+from classic_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from classic_combat.visualization.plots import (
     add_scatterplot_to_curve,
     initiate_joint_marginal_plot,
     update_global_figure_style_and_save,
 )
-from vanilla_combat.visualization.viz import custom_palette, markers_style
+from classic_combat.visualization.viz import custom_palette, markers_style
 
 
 def _build_arg_parser():

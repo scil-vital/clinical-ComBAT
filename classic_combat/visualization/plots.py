@@ -19,7 +19,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from vanilla_combat.utils.scilpy_utils import assert_outputs_exist
+from classic_combat.utils.scilpy_utils import assert_outputs_exist
 
 matplotlib.use("Agg")
 warnings.filterwarnings("ignore")

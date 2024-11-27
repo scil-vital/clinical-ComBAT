@@ -22,8 +22,8 @@ setup(
     project_urls={
         "Github": "https://github.com/scil-vital/Vanilla-ComBAT",
     },
-    name="vanilla_combat",
-    packages=["vanilla_combat"],
+    name="classic_combat",
+    packages=["classic_combat"],
     version="1.0.0",
     zip_safe=False,
     scripts=glob("scripts/*.py"),

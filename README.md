@@ -1,4 +1,4 @@
-# Vanilla-ComBAT
+# Classic-ComBAT
 Code of the original version of the ComBAT harmonization method as described in the following seminal papers
 
 

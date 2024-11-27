@@ -72,9 +72,9 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from vanilla_combat.utils.combatio import load_sites_data
-from vanilla_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
-from vanilla_combat.visualization.plots import (
+from classic_combat.utils.combatio import load_sites_data
+from classic_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from classic_combat.visualization.plots import (
     add_errorbars_to_plot,
     add_reference_percentiles_to_curve,
     add_scatterplot_to_curve,
@@ -82,7 +82,7 @@ from vanilla_combat.visualization.plots import (
     initiate_joint_marginal_plot,
     update_global_figure_style_and_save,
 )
-from vanilla_combat.visualization.viz import (
+from classic_combat.visualization.viz import (
     compute_reference_windows_and_percentiles_by_windows,
     compute_site_curve,
     custom_palette,

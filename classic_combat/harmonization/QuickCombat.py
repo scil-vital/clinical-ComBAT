@@ -5,7 +5,7 @@ import sys
 import numpy as np
 from matplotlib.pyplot import *
 
-from vanilla_combat.harmonization.QuickHarmonizationMethod import (
+from classic_combat.harmonization.QuickHarmonizationMethod import (
     QuickHarmonizationMethod,
 )
 

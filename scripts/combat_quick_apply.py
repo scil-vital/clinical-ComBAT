@@ -15,9 +15,9 @@ import os
 import numpy as np
 import pandas as pd
 
-from vanilla_combat.harmonization import from_model_filename
-from vanilla_combat.utils.combatio import save_quickcombat_data_to_csv
-from vanilla_combat.utils.scilpy_utils import (
+from classic_combat.harmonization import from_model_filename
+from classic_combat.utils.combatio import save_quickcombat_data_to_csv
+from classic_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
     assert_outputs_exist,

@@ -19,8 +19,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from vanilla_combat.harmonization import from_model_filename, from_model_name
-from vanilla_combat.utils.scilpy_utils import (
+from classic_combat.harmonization import from_model_filename, from_model_name
+from classic_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
     assert_outputs_exist,

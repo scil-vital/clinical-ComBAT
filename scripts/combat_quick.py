@@ -28,7 +28,7 @@ import subprocess
 
 import pandas as pd
 
-from vanilla_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from classic_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
 
 
 def _build_arg_parser():
@@ -149,7 +149,7 @@ def main():
     )
     print("\n     Fit model : ", args.output_model_filename)
     cmd = (
-        "combat_quick_fit.py"
+        "python3 scripts/combat_quick_fit.py"
         + " "
         + args.ref_data
         + " "
@@ -179,7 +179,7 @@ def main():
     #############
     print("\n     Harmonized site : ", args.output_results_filename)
     cmd = (
-        "combat_quick_apply.py"
+        "python3 scripts/combat_quick_apply.py"
         + " "
         + args.mov_data
         + " "
@@ -206,7 +206,7 @@ def main():
     for curr_bundle in args.bundles:
         bundles += str(curr_bundle) + " "
     cmd = (
-        "combat_visualize_model.py"
+        "python3 scripts/combat_visualize_model.py"
         + " "
         + args.ref_data
         + " "
@@ -227,7 +227,7 @@ def main():
 
     print("\n     Harmonized data (AgeCurve_*) : ", args.output_results_filename)
     cmd = (
-        "combat_visualize_harmonization.py"
+        "python3 scripts/combat_visualize_harmonization.py"
         + " "
         + args.ref_data
         + " "
@@ -253,7 +253,7 @@ def main():
     print("\n   Raw data ")
 
     cmd = (
-        "combat_quick_QC.py"
+        "python3 scripts/combat_quick_QC.py"
         + " "
         + args.ref_data
         + " "
@@ -273,7 +273,7 @@ def main():
 
     print("\n   Harmonized data ")
     cmd = (
-        "combat_quick_QC.py"
+        "python3 scripts/combat_quick_QC.py"
         + " "
         + args.ref_data
         + " "

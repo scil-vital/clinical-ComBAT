@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization.QuickCombat import QuickCombat
+from classic_combat.harmonization.QuickCombat import QuickCombat
 
 
 class QuickCombatClassic(QuickCombat):
@@ -19,9 +19,6 @@ class QuickCombatClassic(QuickCombat):
             ignore_handedness_covariate=False,
             use_empirical_bayes=True,
             limit_age_range=False,
-            degree=1,
-            regul_ref=0,
-            regul_mov=0,
             alpha=None,
             beta=None,
             sigma=None,
@@ -54,9 +51,6 @@ class QuickCombatClassic(QuickCombat):
             ignore_handedness_covariate,
             use_empirical_bayes,
             limit_age_range,
-            degree,
-            regul_ref,
-            regul_mov
         )
         self.alpha = alpha
         self.beta = beta
@@ -269,10 +263,6 @@ class QuickCombatClassic(QuickCombat):
 
         if not self.ignore_handedness_covariate:
             design.append(np.ones(len(ages)) * 0.5)
-
-        # Elevate to a polynomial of degree the age data
-        for degree in np.arange(1, self.degree + 1):
-            design.append(ages**degree)
 
         design = np.array(design)
 

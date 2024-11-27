@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Name: classic_combat
+Version: 1.0.0
+Summary: ComBAT harmonization algorithm.
+Home-page: https://github.com/scil-vital/Vanilla-ComBAT
+Author: Gabriel Girard, Manon Edde, Yoan David, Félix Dumais, Matthieu Dumont, Guillaume Theaud, Jean-Christophe Houde, Maxime Descoteaux, Pierre-Marc Jodoin
+Author-email: gabriel.p.girard@usherbrooke.ca
+Project-URL: Github, https://github.com/scil-vital/Vanilla-ComBAT
+Classifier: Programming Language :: Python :: 3.9
+License-File: LICENSE
