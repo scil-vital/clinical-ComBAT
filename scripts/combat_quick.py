@@ -149,7 +149,7 @@ def main():
     )
     print("\n     Fit model : ", args.output_model_filename)
     cmd = (
-        "python3 scripts/combat_quick_fit.py"
+        "combat_quick_fit.py"
         + " "
         + args.ref_data
         + " "
@@ -179,7 +179,7 @@ def main():
     #############
     print("\n     Harmonized site : ", args.output_results_filename)
     cmd = (
-        "python3 scripts/combat_quick_apply.py"
+        "combat_quick_apply.py"
         + " "
         + args.mov_data
         + " "
@@ -206,7 +206,7 @@ def main():
     for curr_bundle in args.bundles:
         bundles += str(curr_bundle) + " "
     cmd = (
-        "python3 scripts/combat_visualize_model.py"
+        "combat_visualize_model.py"
         + " "
         + args.ref_data
         + " "
@@ -227,7 +227,7 @@ def main():
 
     print("\n     Harmonized data (AgeCurve_*) : ", args.output_results_filename)
     cmd = (
-        "python3 scripts/combat_visualize_harmonization.py"
+        "combat_visualize_harmonization.py"
         + " "
         + args.ref_data
         + " "
@@ -253,7 +253,7 @@ def main():
     print("\n   Raw data ")
 
     cmd = (
-        "python3 scripts/combat_quick_QC.py"
+        "combat_quick_QC.py"
         + " "
         + args.ref_data
         + " "
@@ -273,7 +273,7 @@ def main():
 
     print("\n   Harmonized data ")
     cmd = (
-        "python3 scripts/combat_quick_QC.py"
+        "combat_quick_QC.py"
         + " "
         + args.ref_data
         + " "
