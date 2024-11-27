@@ -19,7 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from classic_combat.harmonization import from_model_filename, from_model_name
+from classic_combat.harmonization import from_model_filename, QuickCombatClassic
 from classic_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -84,13 +84,12 @@ def main():
     model = from_model_filename(args.model)
 
     # WE MIGHT HAVE A PROBLEM HERE
-    QC = from_model_name(
-        "classic",
-        ignore_handedness_covariate=model.ignore_handedness_covariate,
-        ignore_sex_covariate=model.ignore_sex_covariate,
-        use_empirical_bayes=False,
-        limit_age_range=False,
-    )
+    QC = QuickCombatClassic(
+            ignore_sex_covariate=model.ignore_sex_covariate,
+            ignore_handedness_covariate=model.ignore_handedness_covariate,
+            use_empirical_bayes=False,
+            limit_age_range=False,
+        )
     QC.fit(ref_data, ref_data)
 
     metric_name = QC.model_params["metric_name"]

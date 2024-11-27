@@ -264,6 +264,8 @@ class QuickCombatClassic(QuickCombat):
         if not self.ignore_handedness_covariate:
             design.append(np.ones(len(ages)) * 0.5)
 
+        design.append(ages)
+
         design = np.array(design)
 
         idx = list(self.bundle_names).index(bundle)
