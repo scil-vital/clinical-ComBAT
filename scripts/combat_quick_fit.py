@@ -10,7 +10,7 @@ Harmonization method:
 Examples:
 # Use the classic method to harmonize the moving site data to the reference site data 
 # (linear)
-combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
+combat_quick_fit.py reference_site.raw.csv.gz moving_site.raw.csv.gz
 
 """
 

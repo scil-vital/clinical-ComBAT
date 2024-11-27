@@ -17,7 +17,7 @@ NOTE: the harmonization parameters are preset. See default settings.
 Example:
 
 # Harmonized with the Classic method (i.e. Fortin et al., (2017) method)
-combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
+combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz
 
 
 """
@@ -86,12 +86,6 @@ def _build_arg_parser():
         nargs="+",
         help="List of bundle to use for figures. To plot all bundles use "
         "--bundles all. ['mni_IIT_mask_skeletonFA'].",
-    )
-    p.add_argument(
-        "--degree_qc",
-        type=int,
-        help="Degree for QC fit. By default it uses the same as the model.",
-        default=0,
     )
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -268,8 +262,6 @@ def main():
         + os.path.join(args.out_dir, args.output_model_filename)
         + " -v "
         + str(args.verbose)
-        + " --degree_qc " 
-        + str(args.degree_qc)
         + " --out_dir "
         + args.out_dir
     )
@@ -290,8 +282,6 @@ def main():
         + os.path.join(args.out_dir, args.output_model_filename)
         + " -v "
         + str(args.verbose)
-        + " --degree_qc " 
-        + str(args.degree_qc)
         + " --out_dir "
         + args.out_dir
     )

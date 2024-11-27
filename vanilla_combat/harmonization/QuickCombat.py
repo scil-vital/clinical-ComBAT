@@ -186,9 +186,6 @@ class QuickCombat(QuickHarmonizationMethod):
 
         self.use_empirical_bayes = self.model_params["use_empirical_bayes"]
         self.limit_age_range = self.model_params["limit_age_range"]
-        self.degree = self.model_params["degree"]
-        self.regul_ref = self.model_params["regul_ref"]
-        self.regul_mov = self.model_params["regul_mov"]
 
 
 
@@ -314,7 +311,6 @@ class QuickCombat(QuickHarmonizationMethod):
             vec = np.dot(mod.T, yy)
 
             B = np.linalg.solve(mod_transpose_mod, vec)
-
             Bs.append(B)
         Bs = np.array(Bs)
         return Bs[:, 0], Bs[:, 1:]

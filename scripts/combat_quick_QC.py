@@ -46,12 +46,6 @@ def _build_arg_parser():
         default="./",
     )
     p.add_argument(
-        "--degree_qc",
-        type=int,
-        help="Degree for model fit. By default it uses the input model degree.",
-        default=0,
-    )
-    p.add_argument(
         "--print_only",
         action="store_true",
         help="If set, do not save the distance to a text file.",
@@ -89,21 +83,13 @@ def main():
 
     model = from_model_filename(args.model)
 
-    if args.degree_qc == 0:
-        args.degree_qc = model.degree
-
-    # WE HAVE  A PROBLEM HERE
+    # WE MIGHT HAVE A PROBLEM HERE
     QC = from_model_name(
-        "clinic",
+        "classic",
         ignore_handedness_covariate=model.ignore_handedness_covariate,
         ignore_sex_covariate=model.ignore_sex_covariate,
         use_empirical_bayes=False,
         limit_age_range=False,
-        degree=args.degree_qc,
-        regul_ref=0,
-        regul_mov=0,
-        nu=0,
-        tau=2,
     )
     QC.fit(ref_data, ref_data)
 
