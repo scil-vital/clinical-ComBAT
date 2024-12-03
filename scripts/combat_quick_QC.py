@@ -93,7 +93,7 @@ def main():
         args.degree_qc = model.degree
 
     QC = from_model_name(
-        "clinic",
+        "classic",
         ignore_handedness_covariate=model.ignore_handedness_covariate,
         ignore_sex_covariate=model.ignore_sex_covariate,
         use_empirical_bayes=False,

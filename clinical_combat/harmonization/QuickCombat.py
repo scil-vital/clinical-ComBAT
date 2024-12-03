@@ -167,15 +167,15 @@ class QuickCombat(QuickHarmonizationMethod):
         design_ref, y_ref = self.get_design_matrices(ref_data)
 
         covariate_effect_ref = np.dot(
-            design_ref[bundle_idx][1:, :].transpose(), self.beta_ref[bundle_idx]
+            design_ref[bundle_idx][1:, :].transpose(), self.beta[bundle_idx]
         )
-        ref_dist = y_ref[bundle_idx] - self.alpha_ref[bundle_idx] - covariate_effect_ref
+        ref_dist = y_ref[bundle_idx] - self.alpha[bundle_idx] - covariate_effect_ref
 
         design_mov, y_mov = self.get_design_matrices(mov_data)
         covariate_effect_mov = np.dot(
-            design_mov[bundle_idx][1:, :].transpose(), self.beta_ref[bundle_idx]
+            design_mov[bundle_idx][1:, :].transpose(), self.beta[bundle_idx]
         )
-        mov_dist = y_mov[bundle_idx] - self.alpha_ref[bundle_idx] - covariate_effect_mov
+        mov_dist = y_mov[bundle_idx] - self.alpha[bundle_idx] - covariate_effect_mov
 
         return QuickCombat.bhattacharyya_distance(ref_dist, mov_dist)
 
