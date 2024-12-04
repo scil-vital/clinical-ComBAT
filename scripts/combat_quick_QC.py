@@ -83,7 +83,6 @@ def main():
 
     model = from_model_filename(args.model)
 
-    # WE MIGHT HAVE A PROBLEM HERE
     QC = QuickCombatClassic(
             ignore_sex_covariate=model.ignore_sex_covariate,
             ignore_handedness_covariate=model.ignore_handedness_covariate,
