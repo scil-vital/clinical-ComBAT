@@ -26,6 +26,7 @@ DONNES
 RES
 PLOTS
 DEBUG
+PRECISION_TEST
 
 .venv
 .vscode

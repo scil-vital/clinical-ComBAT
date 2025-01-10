@@ -272,21 +272,3 @@ def create_plots(mov_data, QC):
     fig = plot.get_figure()
     fig.savefig(foldername + "distribution_HC.png") 
     plt.clf()
-
-
-def plot_outliers_data(data):
-    colors = {
-        (0, 0): 'blue',
-        (0, 1): 'red',
-        (1, 0): 'yellow',
-        (1, 1): 'green'
-    }
-
-    data['color'] = data.apply(lambda row: colors[(row['is_malade'], row['is_outlier'])], axis=1)
-
-    plt.figure(figsize=(10, 6))
-    plt.scatter(data.index, data['mean_no_cov'], c=data['color'])
-    plt.xlabel('Index')
-    plt.ylabel('Mean No Covariate')
-    plt.title('Scatter Plot of Data with Outliers')
-    plt.show()
