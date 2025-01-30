@@ -74,14 +74,18 @@ class QuickCombatClinic(QuickCombat):
             ignore_handedness_covariate,
             use_empirical_bayes=use_empirical_bayes,
             limit_age_range=limit_age_range,
-            degree=degree,
-            regul_ref=regul_ref,
-            regul_mov=regul_mov,
+            degree=degree
         )
+        self.regul_ref = regul_ref
+        if self.regul_ref < 0:
+            raise AssertionError("regul_ref must be greater or equal to 0.")
+        self.regul_mov = regul_mov
+        if self.regul_mov < 0 and not self.regul_mov == -1:
+            raise AssertionError("regul_mov must be greater or equal to 0, or -1.")
         self.nu = nu
-        self.tau = tau
         if self.nu < 0:
             raise AssertionError("nu must be greater or equal to 0.")
+        self.tau = tau
         if self.tau < 1:
             raise AssertionError("tau must be greater or equal to 1.")
 
@@ -104,6 +108,9 @@ class QuickCombatClinic(QuickCombat):
 
         """
         super().initialize_from_model_params(model_filename)
+
+        self.regul_ref = self.model_params["regul_ref"]
+        self.regul_mov = self.model_params["regul_mov"]
         self.nu = self.model_params["nu"]
         self.tau = self.model_params["tau"]
 
@@ -131,6 +138,8 @@ class QuickCombatClinic(QuickCombat):
 
         """
         super().set_model_fit_params(ref_data, mov_data)
+        self.model_params["regul_ref"] = self.regul_ref
+        self.model_params["regul_mov"] = self.regul_mov
         self.model_params["nu"] = self.nu
         self.model_params["tau"] = self.tau
         self.model_params["name"] = "clinic"

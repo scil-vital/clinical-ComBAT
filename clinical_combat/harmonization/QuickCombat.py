@@ -23,9 +23,7 @@ class QuickCombat(QuickHarmonizationMethod):
         ignore_handedness_covariate=False,
         use_empirical_bayes=True,
         limit_age_range=False,
-        degree=1,
-        regul_ref=0,
-        regul_mov=0,
+        degree=1
     ):
         """
         use_empirical_bayes: bool
@@ -34,11 +32,6 @@ class QuickCombat(QuickHarmonizationMethod):
             Remove reference data with age outside the range of the moving site.
         degree: int
             Polynomial degree of the age fit.
-        regul_ref: float
-            Regularization parameter for the reference site data.
-        regul_mov: float
-            Regularization parameter for the moving site data.
-
         """
         super().__init__(
             bundle_names,
@@ -49,15 +42,9 @@ class QuickCombat(QuickHarmonizationMethod):
         self.use_empirical_bayes = use_empirical_bayes
         self.limit_age_range = limit_age_range
         self.degree = degree
-        self.regul_ref = regul_ref
-        self.regul_mov = regul_mov
 
         if self.degree < 0:
             raise AssertionError("Degree must be greater than 1.")
-        if self.regul_ref < 0:
-            raise AssertionError("regul_ref must be greater or equal to 0.")
-        if self.regul_mov < 0 and not self.regul_mov == -1:
-            raise AssertionError("regul_mov must be greater or equal to 0, or -1.")
 
 
     def standardize_moving_data(self, X, Y):
@@ -221,8 +208,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.use_empirical_bayes = self.model_params["use_empirical_bayes"]
         self.limit_age_range = self.model_params["limit_age_range"]
         self.degree = self.model_params["degree"]
-        self.regul_ref = self.model_params["regul_ref"]
-        self.regul_mov = self.model_params["regul_mov"]
 
 
     def set_model_fit_params(self, ref_data, mov_data):
@@ -242,8 +227,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.model_params["max_age"] = np.max(mov_data["age"])
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
         self.model_params["degree"] = self.degree
-        self.model_params["regul_ref"] = self.regul_ref
-        self.model_params["regul_mov"] = self.regul_mov
         
 
     def get_beta_labels(self):

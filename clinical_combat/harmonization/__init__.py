@@ -14,6 +14,7 @@ def from_model_name(
     use_empirical_bayes=True,
     limit_age_range=False,
     degree=1,
+    regul=0,
     regul_ref=0,
     regul_mov=0,
     nu=0,
@@ -27,8 +28,7 @@ def from_model_name(
             use_empirical_bayes=use_empirical_bayes,
             limit_age_range=limit_age_range,
             degree=degree,
-            regul_ref=regul_ref,
-            regul_mov=regul_mov
+            regul=regul
         )
     elif name == "clinic":
         QC = QuickCombatClinic(

@@ -20,8 +20,7 @@ class QuickCombatClassic(QuickCombat):
             use_empirical_bayes=True,
             limit_age_range=False,
             degree=1,
-            regul_ref=0,
-            regul_mov=0,
+            regul=0,
             alpha=None,
             beta=None,
             sigma=None,
@@ -31,6 +30,8 @@ class QuickCombatClassic(QuickCombat):
             delta_mov=None,
         ):
         """
+        regul: float
+            Regularization parameter.
         alpha: Array
             Covariates intercept parameter.
         beta: Array
@@ -54,10 +55,9 @@ class QuickCombatClassic(QuickCombat):
             ignore_handedness_covariate,
             use_empirical_bayes,
             limit_age_range,
-            degree,
-            regul_ref,
-            regul_mov
+            degree
         )
+        self.regul = regul
         self.alpha = alpha
         self.beta = beta
         self.sigma = sigma
@@ -79,6 +79,7 @@ class QuickCombatClassic(QuickCombat):
         nb = len(self.get_beta_labels())
 
         params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
+        self.regul = self.model_params["regul"]
         self.bundle_names = params[0, 1:]
         self.alpha = params[1, 1:].astype("float64").transpose()
         self.beta = params[2 : 2 + nb, 1:].astype("float64").transpose()
@@ -136,6 +137,7 @@ class QuickCombatClassic(QuickCombat):
 
         """
         super().set_model_fit_params(ref_data, mov_data)
+        self.model_params["regul"] = self.regul
         self.model_params["name"] = "classic"
 
 
@@ -179,7 +181,8 @@ class QuickCombatClassic(QuickCombat):
         design_mov, y_mov = self.get_design_matrices(mov_data)
         design_ref, y_ref = self.get_design_matrices(ref_data)
         design_all, y_all = self.get_design_matrices(all_data)
-        self.alpha, self.beta = QuickCombat.get_alpha_beta(design_all, y_all)
+        self.alpha, self.beta = QuickCombat.get_alpha_beta(design_all, y_all, 
+                                                           regul=self.regul)
         self.sigma = QuickCombat.get_sigma(design_all, y_all, self.alpha, self.beta)
         
         z = self.standardize_moving_data(design_mov, y_mov)
