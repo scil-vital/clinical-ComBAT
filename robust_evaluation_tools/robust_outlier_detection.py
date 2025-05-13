@@ -105,33 +105,6 @@ def analyze_detection_performance(outliers_idx, mov_data):
     return metrics_df
 
 
-def scatter_plot_with_colors(df, outliers_idx,  y_column, directory, file_path, title=None):
-    df['is_malade'] = df['disease'].apply(lambda x: 0 if x == 'HC' else 1)
-    df['is_outlier'] = 0
-    df.loc[outliers_idx, 'is_outlier'] = 1
-    colors = []
-    bundle_column = 'metric_bundle' if 'metric_bundle' in df.columns else 'bundle'
-    for bundle in df[bundle_column].unique():
-        bundle_data = df[df[bundle_column] == bundle]
-        colors = []
-        for _, row in bundle_data.iterrows():
-            if row['is_malade'] == 0 and row['is_outlier'] == 0:
-                colors.append('blue')
-            elif row['is_malade'] == 1 and row['is_outlier'] == 1:
-                colors.append('green')
-            elif row['is_outlier'] == 1 and row['is_malade'] == 0:
-                colors.append('red')
-            elif row['is_malade'] == 1 and row['is_outlier'] == 0:
-                colors.append('orange')
-
-        plt.scatter(bundle_data['age'], bundle_data[y_column], c=colors)
-        plt.xlabel('age')
-        plt.ylabel(y_column)
-        plt.title(f"{title} - {bundle}")
-        os.makedirs(directory, exist_ok=True)
-        plt.savefig(os.path.join(directory,f"{file_path}_{bundle}.png"))
-        plt.clf()
-
 
 def get_matching_indexes(file_path, subset_path):
     # Load the CSV files into DataFrames
@@ -158,3 +131,60 @@ def get_matching_indexes(file_path, subset_path):
 
 
     return matching_indexes
+
+
+import pandas as pd
+import numpy as np
+
+def z_score_detection(df_file,
+                      mean_col: str = "mean_no_cov",
+                      threshold: float = 1.5) -> list[str]:
+    """
+    Repère les patients (sid) dont la moyenne du |z-score| dépasse `threshold`
+    et renvoie la liste de ces sid.
+
+    Paramètres
+    ----------
+    df : DataFrame
+        Doit contenir les colonnes 'sid', 'metric_bundle' et `mean_col`.
+    mean_col : str
+        Colonne sur laquelle on calcule le z-score (défaut 'mean_no_cov').
+    threshold : float
+        Seuil de la moyenne du z-score (défaut 1.5).
+
+    Retour
+    ------
+    outlier_sids : list[str]
+        Liste des sid identifiés comme outliers.
+    """
+    # 1) stats par metric_bundle
+
+    df = pd.read_csv(df_file)
+    stats = (df.groupby("metric_bundle")[mean_col]
+               .agg(['mean', 'std'])
+               .rename(columns={'mean': 'global_mean', 'std': 'global_std'}))
+    stats["global_std"].replace(0, 1e-6, inplace=True)  # éviter div/0
+
+    # 2) merge pour récupérer les stats
+    df_z = df.merge(stats, on="metric_bundle", how="left")
+
+    # 3) |z-score|
+    df_z["abs_zscore"] = ((df_z[mean_col] - df_z["global_mean"])
+                          / df_z["global_std"]).abs()
+
+    # 4) moyenne |z-score| par patient
+    mean_z = (df_z.groupby("sid", as_index=False)
+                    .agg(mean_abs_zscore=("abs_zscore", "mean")))
+
+    # 5) liste des outliers
+    outlier_sids = mean_z.loc[
+        mean_z["mean_abs_zscore"] > threshold, "sid"
+    ].tolist()
+
+    return outlier_sids
+
+
+
+def flag_sid(df, sids, method):
+    df[method] = df['sid'].isin(sids).astype(int)
+    return df

@@ -2,12 +2,14 @@ from clinical_combat.harmonization import from_model_name
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib.patches import Patch
 import seaborn as sns
 import pandas as pd
 from sklearn.metrics import precision_score, recall_score, confusion_matrix, f1_score
 import json
 import os
 from scipy.spatial.distance import euclidean
+
 
 
 def remove_outliers(ref_data, mov_data, args):
@@ -33,11 +35,6 @@ def remove_outliers(ref_data, mov_data, args):
     site = mov_data['site'].unique()[0]
     rwp_str = "RWP" if rwp else "NoRWP"
 
-    # Process movement data
-    design_mov, y_mov = QC.get_design_matrices(mov_data)
-    y_no_cov = QC.remove_covariate_effect(design_mov, y_mov)
-    y_no_cov_flat = np.array(y_no_cov).flatten()
-    mov_data.insert(3, "mean_no_cova", y_no_cov_flat, True)
     mov_data = remove_covariates_effects2(mov_data)
 
     # Find outliers
@@ -45,9 +42,14 @@ def remove_outliers(ref_data, mov_data, args):
     for bundle in QC.bundle_names:
         data = mov_data.query("bundle == @bundle")
         outliers_idx += find_outlier(data)
-
+    if not rwp:
+        # plot_distributions_by_bundle(mov_data, outliers_idx, args.out_dir)
+        # scatter_plot_with_colors(mov_data, outliers_idx, 'mean_no_cov', os.path.join(args.out_dir, 'scatter'), site, title='scatter plot with outliers')
+        plot_distributions_and_scatter(mov_data, outliers_idx, args.out_dir, y_column='mean_no_cov', robust_method=args.robust)
 
     mov_data = mov_data.drop(columns=['mean_no_cov'])
+
+    
 
     # Save outliers
     outliers_filename = os.path.join(args.out_dir,f"outliers_{site}_{args.robust}_{rwp_str}.csv")
@@ -222,7 +224,7 @@ def find_outliers_MAD(data, column='mean_no_cov', threshold=3.5):
     return outliers.index.to_list()
 
 
-def reject_outliers_until_mad_equals_mean(data,  threshold=0.001): 
+def reject_outliers_until_mad_equals_mean(data, threshold=0.001): 
     column = 'mean_no_cov'
     outliers_idx = []
 
@@ -234,16 +236,21 @@ def reject_outliers_until_mad_equals_mean(data,  threshold=0.001):
     metric_name = data['metric'].iloc[0]
 
     if metric_name in METRICS_HIGH:
-        pick_idx = lambda s: s.idxmax()   # enlève la valeur maximale
+        pick_idx = lambda s: s.idxmax()
+        direction_valid = lambda mean, median: mean > median
     elif metric_name in METRICS_LOW:
-        pick_idx = lambda s: s.idxmin()   # enlève la valeur minimale
+        pick_idx = lambda s: s.idxmin()
+        direction_valid = lambda mean, median: mean < median
     else:
-        # Rien à faire, on retourne une liste vide
         return outliers_idx
 
     while True:
         median = data[column].median()
         mean   = data[column].mean()
+
+        # Si la direction n'est pas respectée, on arrête tout de suite
+        if not direction_valid(mean, median):
+            break
 
         if abs(median - mean) / median < threshold:
             break
@@ -299,6 +306,12 @@ def top50(data):
 def cheat(data):
     return data[data['disease'] != 'HC'].index.to_list()
 
+def zscore(data):
+    return flagged(data, method='Z_SCORE')
+
+def flagged(data, method):
+    return data[data[method] == 1].index.to_list() 
+
 def rien(data):
     return []
 
@@ -316,7 +329,8 @@ ROBUST_METHODS = {
     "TOP40": top40,
     "TOP50": top50,
     "CHEAT": cheat,
-    "FLIP": rien
+    "FLIP": rien,
+    "Z_SCORE": zscore
 }
 from clinical_combat.harmonization.QuickCombat import QuickCombat
 
@@ -350,3 +364,117 @@ def remove_covariates_effects2(df):
         covariate_effect = np.dot(design[i][1:, :].transpose(), beta[i])
         df.loc[df['bundle'] == bundle, 'mean_no_cov'] = (y[i] - covariate_effect)
     return df
+
+
+def plot_distributions_and_scatter(df_before, outliers_idx, output_dir, y_column='mean_no_cov', robust_method=''):
+    df_after = df_before.drop(outliers_idx)
+    df_before = df_before.copy()
+    df_before['is_malade'] = df_before['disease'].apply(lambda x: 0 if x == 'HC' else 1)
+    df_before['is_outlier'] = 0
+    df_before.loc[outliers_idx, 'is_outlier'] = 1
+
+    disease = [d for d in df_before['disease'].unique() if d != 'HC'][0]
+    site = df_before['site'].unique()[0]
+    metric = df_before['metric'].unique()[0]
+    parts = output_dir.split(os.sep)
+    parts[parts.index(robust_method)] = "DISTRIBUTION"
+    new_base = os.path.join(*parts)  # enlève /0/robust/
+
+
+    bundle_column = 'metric_bundle' if 'metric_bundle' in df_before.columns else 'bundle'
+    bundles = df_before[bundle_column].unique()
+
+    for bundle in bundles:
+        df_b_before = df_before[df_before[bundle_column] == bundle]
+        df_b_after = df_after[df_after[bundle_column] == bundle]
+
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=False)
+
+        # --- KDE Avant filtrage ---
+        sns.kdeplot(df_b_before[df_b_before['disease'] == 'HC'][y_column], label='HC', ax=axes[0], linewidth=2)
+        sns.kdeplot(df_b_before[df_b_before['disease'] != 'HC'][y_column], label='Malades', ax=axes[0], linewidth=2)
+        sns.kdeplot(df_b_before[y_column], label='Tous', linestyle='--', ax=axes[0], linewidth=2)
+
+        mean_hc_before = df_b_before[df_b_before['disease'] == 'HC'][y_column].mean()
+        std_hc_before = df_b_before[df_b_before['disease'] == 'HC'][y_column].std()
+        mean_all_before = df_b_before[y_column].mean()
+        std_all_before = df_b_before[y_column].std()
+
+        axes[0].axvline(mean_hc_before, color='blue', linestyle=':', linewidth=1.5, label='Moyenne HC')
+        axes[0].axvline(mean_all_before, color='black', linestyle='-.', linewidth=1.5, label='Moyenne Tous')
+        axes[0].axvspan(mean_hc_before - std_hc_before, mean_hc_before + std_hc_before,
+                        color='blue', alpha=0.1, label='±1 STD HC')
+        axes[0].axvspan(mean_all_before - std_all_before, mean_all_before + std_all_before,
+                        color='black', alpha=0.1, label='±1 STD Tous')
+
+        text_stats = (
+            f"HC:\nμ={mean_hc_before:.6f}\nσ={std_hc_before:.6f}\n"
+            f"Tous:\nμ={mean_all_before:.6f}\nσ={std_all_before:.6f}"
+        )
+        axes[0].text(0.02, 0.95, text_stats, transform=axes[0].transAxes,
+                     verticalalignment='top', horizontalalignment='left', fontsize=9,
+                     bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+
+        axes[0].set_title("Avant filtrage")
+        axes[0].set_ylabel('Densité')
+        axes[0].legend(loc='upper right')
+        axes[0].grid(True)
+
+        # --- KDE Après filtrage ---
+        sns.kdeplot(df_b_after[df_b_after['disease'] == 'HC'][y_column], label='HC', ax=axes[1], linewidth=2)
+        sns.kdeplot(df_b_after[df_b_after['disease'] != 'HC'][y_column], label='Malades', ax=axes[1], linewidth=2)
+        sns.kdeplot(df_b_after[y_column], label='Tous', linestyle='--', ax=axes[1], linewidth=2)
+
+        mean_hc_after = df_b_after[df_b_after['disease'] == 'HC'][y_column].mean()
+        std_hc_after = df_b_after[df_b_after['disease'] == 'HC'][y_column].std()
+        mean_all_after = df_b_after[y_column].mean()
+        std_all_after = df_b_after[y_column].std()
+
+        axes[1].axvline(mean_hc_after, color='blue', linestyle=':', linewidth=1.5, label='Moyenne HC')
+        axes[1].axvline(mean_all_after, color='black', linestyle='-.', linewidth=1.5, label='Moyenne Tous')
+        axes[1].axvspan(mean_hc_after - std_hc_after, mean_hc_after + std_hc_after,
+                        color='blue', alpha=0.1, label='±1 STD HC')
+        axes[1].axvspan(mean_all_after - std_all_after, mean_all_after + std_all_after,
+                        color='black', alpha=0.1, label='±1 STD Tous')
+
+        text_stats = (
+            f"HC:\nμ={mean_hc_after:.6f}\nσ={std_hc_after:.6f}\n"
+            f"Tous:\nμ={mean_all_after:.6f}\nσ={std_all_after:.6f}"
+        )
+        axes[1].text(0.02, 0.95, text_stats, transform=axes[1].transAxes,
+                     verticalalignment='top', horizontalalignment='left', fontsize=9,
+                     bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+
+        axes[1].set_title("Après filtrage")
+        axes[1].legend(loc='upper right')
+        axes[1].grid(True)
+
+        # --- Scatterplot ---
+        colors = df_b_before.apply(lambda row: (
+            'blue' if row['is_malade'] == 0 and row['is_outlier'] == 0 else
+            'green' if row['is_malade'] == 1 and row['is_outlier'] == 1 else
+            'red' if row['is_malade'] == 0 and row['is_outlier'] == 1 else
+            'orange'
+        ), axis=1)
+
+        axes[2].scatter(df_b_before['age'], df_b_before[y_column], c=colors)
+        axes[2].set_title("Scatter MEAN_NO_COV")
+        axes[2].set_xlabel('Âge')
+        axes[2].set_ylabel(y_column)
+        axes[2].grid(True)
+
+        # Légende couleur pour le scatter plot (en haut à gauche)
+        legend_elements = [
+            Patch(facecolor='blue', label='Sain & pas outlier'),
+            Patch(facecolor='green', label='Malade & outlier'),
+            Patch(facecolor='red', label='Sain & outlier'),
+            Patch(facecolor='orange', label='Malade & pas outlier')
+        ]
+        axes[2].legend(handles=legend_elements, loc='upper left', title='Légende couleurs')
+
+        plt.suptitle(f"Analyse Maladie:{disease} - {site} ({metric}- {bundle})")
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        dir_path = os.path.join(new_base, bundle)
+        os.makedirs(dir_path, exist_ok=True)
+        plt.savefig(os.path.join(dir_path, f"{bundle}_{site}_{robust_method}.png"))
+        plt.close()

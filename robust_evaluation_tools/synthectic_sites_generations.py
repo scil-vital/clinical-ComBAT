@@ -209,15 +209,17 @@ def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, da
 
 def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path, disease=None, n_jobs=-1):
     df = pd.read_csv(data_path)
+    df = df[~df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
     if disease is not None:
         df = df[(df['disease'] == disease) | (df['disease'] == 'HC')]
 
     train_df, test_df = split_train_test(df, test_size=0.2, random_state=42)
 
-    for sample_size in sample_sizes:
-        for disease_ratio in disease_ratios:
-            Parallel(n_jobs=n_jobs)(
-                delayed(process_test)(
-                    sample_size, disease_ratio, i, train_df, test_df, directory, data_path
-                ) for i in range(num_tests)
-            )
+    Parallel(n_jobs=n_jobs)(
+    delayed(process_test)(
+        sample_size, disease_ratio, i, train_df, test_df, directory, data_path
+    )
+    for sample_size in sample_sizes
+    for disease_ratio in disease_ratios
+    for i in range(num_tests)
+)
