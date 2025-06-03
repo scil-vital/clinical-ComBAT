@@ -109,7 +109,7 @@ def get_complete_combination(folder_path, file_pattern='adni_compilation*.csv.gz
         df = pd.read_csv(file)
         if include_CamCAN:
             metric = df['metric'].unique()[0]
-            CamCAN_file = os.path.join('DONNES','CamCAN', f'CamCAN.{metric}.raw.csv.gz')
+            CamCAN_file = os.path.join('DONNES_F','CamCAN', f'CamCAN.{metric}.raw.csv.gz')
             df = pd.concat([df, pd.read_csv(CamCAN_file)])
         if is_CamCAN: # CamCAN has a different naming convention
             df['site'] = 'CamCAN_compilation'
@@ -195,5 +195,5 @@ def show_scatter_plot(df, column, bundle):
 
 
 def get_camcan_file(metric):
-    compilation_folder = os.path.join('DONNES', 'CamCAN')
+    compilation_folder = os.path.join('DONNES_F', 'CamCAN')
     return os.path.join(compilation_folder, f"CamCAN.{metric}.raw.csv.gz")

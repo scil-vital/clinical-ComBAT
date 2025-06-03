@@ -126,7 +126,7 @@ def _build_arg_parser():
     p.add_argument(
         "--robust",
         default="No",
-        choices=["No", "IQR", "MAD","MMS", 'VS', 'VS2','TOP5', 'TOP10', 'TOP20', 'TOP30', 'TOP40', 'TOP50', 'CHEAT', 'FLIP', 'Z_SCORE'],
+        choices=["No", "IQR", "MAD","MMS", 'VS', 'VS2','TOP5', 'TOP10', 'TOP20', 'TOP30', 'TOP40', 'TOP50', 'CHEAT', 'FLIP', 'Z_SCORE', 'Z_SCORE_IQR',"Z_SCORE_MAD" ],
         help="If set, use combat robust. This tries "
         + "identifying/rejecting non-HC subjects.",
     )

@@ -42,9 +42,8 @@ def remove_outliers(ref_data, mov_data, args):
     for bundle in QC.bundle_names:
         data = mov_data.query("bundle == @bundle")
         outliers_idx += find_outlier(data)
-    if not rwp:
-        # plot_distributions_by_bundle(mov_data, outliers_idx, args.out_dir)
-        # scatter_plot_with_colors(mov_data, outliers_idx, 'mean_no_cov', os.path.join(args.out_dir, 'scatter'), site, title='scatter plot with outliers')
+        
+    if not rwp and (site.endswith('viz')):
         plot_distributions_and_scatter(mov_data, outliers_idx, args.out_dir, y_column='mean_no_cov', robust_method=args.robust)
 
     mov_data = mov_data.drop(columns=['mean_no_cov'])
@@ -71,6 +70,15 @@ def remove_outliers(ref_data, mov_data, args):
     return mov_data
 
 def find_outliers_IQR(data):
+    """
+    Détecte les outliers selon la méthode de l'IQR,
+    en s'assurant de laisser au moins 2 données dans l'ensemble.
+
+    Retourne :
+        list: Indices des outliers.
+    """
+    if len(data) <= 2:
+        return []
 
     Q1 = data['mean_no_cov'].quantile(0.25)
     Q3 = data['mean_no_cov'].quantile(0.75)
@@ -79,10 +87,24 @@ def find_outliers_IQR(data):
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
 
-    # Filtrer les valeurs aberrantes
-    outliers = data[(data['mean_no_cov'] < lower_bound) | (data['mean_no_cov'] > upper_bound)]
+    # Masque des outliers
+    outlier_mask = (data['mean_no_cov'] < lower_bound) | (data['mean_no_cov'] > upper_bound)
+    outlier_indices = data[outlier_mask].index.to_list()
+    # S'assurer qu'il reste au moins 2 données
+    if len(data) - len(outlier_indices) < 2:
+        bob = len(outlier_indices)
+        # Trier les outliers par distance à la borne la plus proche
+        distances = data.loc[outlier_mask, 'mean_no_cov'].apply(
+            lambda x: min(abs(x - lower_bound), abs(x - upper_bound))
+        )
+        sorted_outliers = distances.sort_values(ascending=False).index
 
-    return outliers.index.to_list()
+        # Garder seulement ceux nécessaires pour conserver au moins 2 données
+        n_to_remove = len(data) - 2
+        outlier_indices = sorted_outliers[:n_to_remove].to_list()
+        
+
+    return outlier_indices
 
 def find_outliers_VS(data, column='mean_no_cov'):
     """
@@ -113,7 +135,7 @@ def find_outliers_VS(data, column='mean_no_cov'):
     outliers_idx = []
     median = data[column].median()
 
-    while True:
+    while len(data) > 2:
         # Moyennes des écarts de chaque côté de la médiane
         left_mean  = abs((data[data[column] < median][column] - median).mean())
         right_mean = abs((data[data[column] > median][column] - median).mean())
@@ -167,7 +189,7 @@ def find_outliers_VS2(data, column='mean_no_cov'):
     outliers_idx = []
     median = data[column].median()
 
-    while True:
+    while len(data) > 2:
         # Moyennes des écarts de chaque côté de la médiane
         median = data[column].median()
         
@@ -195,7 +217,8 @@ def find_outliers_VS2(data, column='mean_no_cov'):
 
 def find_outliers_MAD(data, column='mean_no_cov', threshold=3.5):
     """
-    Détecte les valeurs aberrantes dans un DataFrame à l'aide de la méthode MAD.
+    Détecte les valeurs aberrantes dans un DataFrame à l'aide de la méthode MAD,
+    en s'assurant de laisser au moins 2 données dans le DataFrame.
 
     Paramètres :
         data (DataFrame): Le DataFrame contenant les données.
@@ -203,25 +226,33 @@ def find_outliers_MAD(data, column='mean_no_cov', threshold=3.5):
         threshold (float): Le seuil pour considérer une valeur comme un outlier. Par défaut : 3.5.
 
     Retourne :
-        list: Une liste des indices des valeurs aberrantes.
+        list: Une liste des indices des valeurs aberrantes, tout en conservant au moins deux données valides.
     """
-    # Calcul de la médiane de la colonne
-    median = data[column].median()
+    if len(data) <= 2:
+        return []
 
-    # Calcul du MAD
+    median = data[column].median()
     mad = np.median(np.abs(data[column] - median))
 
-    # Calcul des scores normalisés (distance modifiée)
     if mad == 0:
         print("MAD is zero, all values will appear as non-outliers.")
         return []
 
     modified_z_scores = 0.6745 * (data[column] - median) / mad
+    outlier_mask = np.abs(modified_z_scores) > threshold
+    outlier_indices = data[outlier_mask].index.to_list()
 
-    # Identification des indices des outliers
-    outliers = data[np.abs(modified_z_scores) > threshold]
+    # S'assurer qu'au moins 2 données restent
+    if len(data) - len(outlier_indices) < 2:
+        # Trier les outliers par score absolu décroissant (ceux les plus extrêmes d'abord)
+        scores = np.abs(modified_z_scores[outlier_mask])
+        sorted_outliers = scores.sort_values(ascending=False).index
 
-    return outliers.index.to_list()
+        # Réduire le nombre d'outliers à retirer
+        n_to_remove = len(data) - 2
+        outlier_indices = sorted_outliers[:n_to_remove].to_list()
+
+    return outlier_indices
 
 
 def reject_outliers_until_mad_equals_mean(data, threshold=0.001): 
@@ -244,7 +275,7 @@ def reject_outliers_until_mad_equals_mean(data, threshold=0.001):
     else:
         return outliers_idx
 
-    while True:
+    while len(data) > 2:
         median = data[column].median()
         mean   = data[column].mean()
 
@@ -309,6 +340,17 @@ def cheat(data):
 def zscore(data):
     return flagged(data, method='Z_SCORE')
 
+def zscore_IQR(data):
+    zs = flagged(data, method='Z_SCORE')
+    iqr = find_outliers_IQR(data)
+    return list(set(zs) | set(iqr))
+
+def zscore_MAD(data):
+    zs = flagged(data, method='Z_SCORE')
+    mad = find_outliers_MAD(data)
+    return list(set(zs) | set(mad))
+
+
 def flagged(data, method):
     return data[data[method] == 1].index.to_list() 
 
@@ -330,18 +372,21 @@ ROBUST_METHODS = {
     "TOP50": top50,
     "CHEAT": cheat,
     "FLIP": rien,
-    "Z_SCORE": zscore
+    "Z_SCORE": zscore,
+    "Z_SCORE_IQR": zscore_IQR,
+    "Z_SCORE_MAD": zscore_MAD,
 }
 from clinical_combat.harmonization.QuickCombat import QuickCombat
 
-def get_design_matrices(df, ignore_handedness=False):
+def get_design_matrices(df, ignore_handedness=False, ignore_sex=False):
     design = []
     Y = []
     for bundle in list(np.unique(df["bundle"])):
         data = df.query("bundle == @bundle")
         hstack_list = []
         hstack_list.append(np.ones(len(data["sid"])))  # intercept
-        hstack_list.append(QuickCombat.to_category(data["sex"]))
+        if not ignore_sex:
+            hstack_list.append(QuickCombat.to_category(data["sex"]))
         if not ignore_handedness:
             hstack_list.append(QuickCombat.to_category(data["handedness"]))
         ages = data["age"].to_numpy()
@@ -352,10 +397,13 @@ def get_design_matrices(df, ignore_handedness=False):
 
 def remove_covariates_effects2(df):
     df = df.sort_values(by=["site", "sid", "bundle"])
-    ignore_handedness = False
+    ignore_handedness = True
+    ignore_sex = False
+    if df['sex'].nunique() == 1:
+        ignore_sex = True
     if df['handedness'].nunique() == 1:
         ignore_handedness = True
-    design, y = get_design_matrices(df, ignore_handedness)
+    design, y = get_design_matrices(df, ignore_handedness, ignore_sex)
     alpha, beta = QuickCombat.get_alpha_beta(design, y)
 
     df['mean_no_cov'] = df['mean']
@@ -373,108 +421,107 @@ def plot_distributions_and_scatter(df_before, outliers_idx, output_dir, y_column
     df_before['is_outlier'] = 0
     df_before.loc[outliers_idx, 'is_outlier'] = 1
 
-    disease = [d for d in df_before['disease'].unique() if d != 'HC'][0]
+    
     site = df_before['site'].unique()[0]
+    disease = site.split('_')[0]
     metric = df_before['metric'].unique()[0]
-    parts = output_dir.split(os.sep)
-    parts[parts.index(robust_method)] = "DISTRIBUTION"
-    new_base = os.path.join(*parts)  # enlève /0/robust/
+    error = df_before['error'].unique()[0]
+    nasty_bundle = df_before['nasty_bundle'].unique()[0]
+    print ("bundle is ", nasty_bundle)
+    
 
 
-    bundle_column = 'metric_bundle' if 'metric_bundle' in df_before.columns else 'bundle'
-    bundles = df_before[bundle_column].unique()
+    bundle_column = 'bundle'
+    bundle = nasty_bundle
 
-    for bundle in bundles:
-        df_b_before = df_before[df_before[bundle_column] == bundle]
-        df_b_after = df_after[df_after[bundle_column] == bundle]
+    df_b_before = df_before[df_before[bundle_column] == bundle]
+    df_b_after = df_after[df_after[bundle_column] == bundle]
 
-        fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=False)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=False)
 
-        # --- KDE Avant filtrage ---
-        sns.kdeplot(df_b_before[df_b_before['disease'] == 'HC'][y_column], label='HC', ax=axes[0], linewidth=2)
-        sns.kdeplot(df_b_before[df_b_before['disease'] != 'HC'][y_column], label='Malades', ax=axes[0], linewidth=2)
-        sns.kdeplot(df_b_before[y_column], label='Tous', linestyle='--', ax=axes[0], linewidth=2)
+    # --- KDE Avant filtrage ---
+    sns.kdeplot(df_b_before[df_b_before['disease'] == 'HC'][y_column], label='HC', ax=axes[0], linewidth=2)
+    sns.kdeplot(df_b_before[df_b_before['disease'] != 'HC'][y_column], label='Malades', ax=axes[0], linewidth=2)
+    sns.kdeplot(df_b_before[y_column], label='Tous', linestyle='--', ax=axes[0], linewidth=2)
 
-        mean_hc_before = df_b_before[df_b_before['disease'] == 'HC'][y_column].mean()
-        std_hc_before = df_b_before[df_b_before['disease'] == 'HC'][y_column].std()
-        mean_all_before = df_b_before[y_column].mean()
-        std_all_before = df_b_before[y_column].std()
+    mean_hc_before = df_b_before[df_b_before['disease'] == 'HC'][y_column].mean()
+    std_hc_before = df_b_before[df_b_before['disease'] == 'HC'][y_column].std()
+    mean_all_before = df_b_before[y_column].mean()
+    std_all_before = df_b_before[y_column].std()
 
-        axes[0].axvline(mean_hc_before, color='blue', linestyle=':', linewidth=1.5, label='Moyenne HC')
-        axes[0].axvline(mean_all_before, color='black', linestyle='-.', linewidth=1.5, label='Moyenne Tous')
-        axes[0].axvspan(mean_hc_before - std_hc_before, mean_hc_before + std_hc_before,
-                        color='blue', alpha=0.1, label='±1 STD HC')
-        axes[0].axvspan(mean_all_before - std_all_before, mean_all_before + std_all_before,
-                        color='black', alpha=0.1, label='±1 STD Tous')
+    axes[0].axvline(mean_hc_before, color='blue', linestyle=':', linewidth=1.5, label='Moyenne HC')
+    axes[0].axvline(mean_all_before, color='black', linestyle='-.', linewidth=1.5, label='Moyenne Tous')
+    axes[0].axvspan(mean_hc_before - std_hc_before, mean_hc_before + std_hc_before,
+                    color='blue', alpha=0.1, label='±1 STD HC')
+    axes[0].axvspan(mean_all_before - std_all_before, mean_all_before + std_all_before,
+                    color='black', alpha=0.1, label='±1 STD Tous')
 
-        text_stats = (
-            f"HC:\nμ={mean_hc_before:.6f}\nσ={std_hc_before:.6f}\n"
-            f"Tous:\nμ={mean_all_before:.6f}\nσ={std_all_before:.6f}"
-        )
-        axes[0].text(0.02, 0.95, text_stats, transform=axes[0].transAxes,
-                     verticalalignment='top', horizontalalignment='left', fontsize=9,
-                     bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+    text_stats = (
+        f"HC:\nμ={mean_hc_before:.6f}\nσ={std_hc_before:.6f}\n"
+        f"Tous:\nμ={mean_all_before:.6f}\nσ={std_all_before:.6f}"
+    )
+    axes[0].text(0.02, 0.95, text_stats, transform=axes[0].transAxes,
+                    verticalalignment='top', horizontalalignment='left', fontsize=9,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
-        axes[0].set_title("Avant filtrage")
-        axes[0].set_ylabel('Densité')
-        axes[0].legend(loc='upper right')
-        axes[0].grid(True)
+    axes[0].set_title("Avant filtrage")
+    axes[0].set_ylabel('Densité')
+    axes[0].legend(loc='upper right')
+    axes[0].grid(True)
 
-        # --- KDE Après filtrage ---
-        sns.kdeplot(df_b_after[df_b_after['disease'] == 'HC'][y_column], label='HC', ax=axes[1], linewidth=2)
-        sns.kdeplot(df_b_after[df_b_after['disease'] != 'HC'][y_column], label='Malades', ax=axes[1], linewidth=2)
-        sns.kdeplot(df_b_after[y_column], label='Tous', linestyle='--', ax=axes[1], linewidth=2)
+    # --- KDE Après filtrage ---
+    sns.kdeplot(df_b_before[df_b_before['disease'] == 'HC'][y_column], label='HC', ax=axes[1], linewidth=2)
+    sns.kdeplot(df_b_after[df_b_after['disease'] != 'HC'][y_column], label='Malades', ax=axes[1], linewidth=2)
+    sns.kdeplot(df_b_after[y_column], label='Tous', linestyle='--', ax=axes[1], linewidth=2)
 
-        mean_hc_after = df_b_after[df_b_after['disease'] == 'HC'][y_column].mean()
-        std_hc_after = df_b_after[df_b_after['disease'] == 'HC'][y_column].std()
-        mean_all_after = df_b_after[y_column].mean()
-        std_all_after = df_b_after[y_column].std()
+    mean_hc_after = df_b_before[df_b_before['disease'] == 'HC'][y_column].mean()
+    std_hc_after = df_b_after[df_b_after['disease'] == 'HC'][y_column].std()
+    mean_all_after = df_b_after[y_column].mean()
+    std_all_after = df_b_after[y_column].std()
 
-        axes[1].axvline(mean_hc_after, color='blue', linestyle=':', linewidth=1.5, label='Moyenne HC')
-        axes[1].axvline(mean_all_after, color='black', linestyle='-.', linewidth=1.5, label='Moyenne Tous')
-        axes[1].axvspan(mean_hc_after - std_hc_after, mean_hc_after + std_hc_after,
-                        color='blue', alpha=0.1, label='±1 STD HC')
-        axes[1].axvspan(mean_all_after - std_all_after, mean_all_after + std_all_after,
-                        color='black', alpha=0.1, label='±1 STD Tous')
+    axes[1].axvline(mean_hc_after, color='blue', linestyle=':', linewidth=1.5, label='Moyenne HC')
+    axes[1].axvline(mean_all_after, color='black', linestyle='-.', linewidth=1.5, label='Moyenne Tous')
+    axes[1].axvspan(mean_hc_after - std_hc_after, mean_hc_after + std_hc_after,
+                    color='blue', alpha=0.1, label='±1 STD HC')
+    axes[1].axvspan(mean_all_after - std_all_after, mean_all_after + std_all_after,
+                    color='black', alpha=0.1, label='±1 STD Tous')
 
-        text_stats = (
-            f"HC:\nμ={mean_hc_after:.6f}\nσ={std_hc_after:.6f}\n"
-            f"Tous:\nμ={mean_all_after:.6f}\nσ={std_all_after:.6f}"
-        )
-        axes[1].text(0.02, 0.95, text_stats, transform=axes[1].transAxes,
-                     verticalalignment='top', horizontalalignment='left', fontsize=9,
-                     bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+    text_stats = (
+        f"HC:\nμ={mean_hc_after:.6f}\nσ={std_hc_after:.6f}\n"
+        f"Tous:\nμ={mean_all_after:.6f}\nσ={std_all_after:.6f}"
+    )
+    axes[1].text(0.02, 0.95, text_stats, transform=axes[1].transAxes,
+                    verticalalignment='top', horizontalalignment='left', fontsize=9,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
-        axes[1].set_title("Après filtrage")
-        axes[1].legend(loc='upper right')
-        axes[1].grid(True)
+    axes[1].set_title("Après filtrage")
+    axes[1].legend(loc='upper right')
+    axes[1].grid(True)
 
-        # --- Scatterplot ---
-        colors = df_b_before.apply(lambda row: (
-            'blue' if row['is_malade'] == 0 and row['is_outlier'] == 0 else
-            'green' if row['is_malade'] == 1 and row['is_outlier'] == 1 else
-            'red' if row['is_malade'] == 0 and row['is_outlier'] == 1 else
-            'orange'
-        ), axis=1)
+    # --- Scatterplot ---
+    colors = df_b_before.apply(lambda row: (
+        'blue' if row['is_malade'] == 0 and row['is_outlier'] == 0 else
+        'green' if row['is_malade'] == 1 and row['is_outlier'] == 1 else
+        'red' if row['is_malade'] == 0 and row['is_outlier'] == 1 else
+        'orange'
+    ), axis=1)
 
-        axes[2].scatter(df_b_before['age'], df_b_before[y_column], c=colors)
-        axes[2].set_title("Scatter MEAN_NO_COV")
-        axes[2].set_xlabel('Âge')
-        axes[2].set_ylabel(y_column)
-        axes[2].grid(True)
+    axes[2].scatter(df_b_before['age'], df_b_before[y_column], c=colors)
+    axes[2].set_title("Scatter MEAN_NO_COV")
+    axes[2].set_xlabel('Âge')
+    axes[2].set_ylabel(y_column)
+    axes[2].grid(True)
 
-        # Légende couleur pour le scatter plot (en haut à gauche)
-        legend_elements = [
-            Patch(facecolor='blue', label='Sain & pas outlier'),
-            Patch(facecolor='green', label='Malade & outlier'),
-            Patch(facecolor='red', label='Sain & outlier'),
-            Patch(facecolor='orange', label='Malade & pas outlier')
-        ]
-        axes[2].legend(handles=legend_elements, loc='upper left', title='Légende couleurs')
+    # Légende couleur pour le scatter plot (en haut à gauche)
+    legend_elements = [
+        Patch(facecolor='blue', label='Sain & pas outlier'),
+        Patch(facecolor='green', label='Malade & outlier'),
+        Patch(facecolor='red', label='Sain & outlier'),
+        Patch(facecolor='orange', label='Malade & pas outlier')
+    ]
+    axes[2].legend(handles=legend_elements, loc='upper left', title='Légende couleurs')
 
-        plt.suptitle(f"Analyse Maladie:{disease} - {site} ({metric}- {bundle})")
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        dir_path = os.path.join(new_base, bundle)
-        os.makedirs(dir_path, exist_ok=True)
-        plt.savefig(os.path.join(dir_path, f"{bundle}_{site}_{robust_method}.png"))
-        plt.close()
+    plt.suptitle(f"Analyse Maladie:{disease} - {site} ({metric}- {bundle})")
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(os.path.join(output_dir, f"{robust_method}_{float(error):.2f}_{site}_{bundle}.png"))
+    plt.close()

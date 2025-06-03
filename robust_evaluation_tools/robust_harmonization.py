@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import subprocess
 import os
+import re
 
 from scripts import combat_quick_apply
 from scripts import combat_quick_QC
@@ -10,11 +11,8 @@ from robust_evaluation_tools.robust_utils import get_site, robust_text, rwp_text
 from pptx import Presentation
 from pptx.util import Inches
 
-def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp, directory, hc,):
-    ###########
-    ### fit ###
-    ###########
-    output_model_filename = (
+def get_output_model_filename(mov_data_file, metric, harmonizartion_method, robust, rwp):
+        return (
             get_site(mov_data_file)
             + "."
             + metric
@@ -26,6 +24,34 @@ def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp
             + rwp_text(rwp)
             + ".model.csv"
         )
+
+def get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory):
+        return os.path.join(
+            directory,
+            get_site(mov_data_file)
+            + "."
+            + metric
+            + "."
+            + harmonizartion_method
+            + "."
+            + robust_text(robust)
+            + "."
+            + rwp_text(rwp)
+            + ".csv"
+        )
+
+def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp, directory, hc,):
+    ###########
+    ### fit ###
+    ###########
+    
+    output_model_filename = get_output_model_filename(
+        mov_data_file, metric, harmonizartion_method, robust, rwp
+    )
+        # Check if the output model file already exists
+    output_model_path = os.path.join(directory, output_model_filename)
+    if os.path.exists(output_model_path):
+        return output_model_path
     cmd = (
         "scripts/combat_quick_fit.py"
         + " "
@@ -41,32 +67,24 @@ def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp
         + " --robust "
         + robust
         + " -f "
+        + " --no_empirical_bayes"
     )
     if rwp:
         cmd += ' --rwp'
     if hc: 
         cmd += ' --hc'
+
     subprocess.call(cmd, shell=True)
-    return os.path.join(directory,output_model_filename)
+    return output_model_path
 
 def apply(mov_data_file, model_filename, metric, harmonizartion_method, robust, rwp, directory):
-    output_filename = os.path.join(
-            directory,
-            get_site(mov_data_file)
-            + "."
-            + metric
-            + "."
-            + harmonizartion_method
-            + "."
-            + robust_text(robust)
-            + "."
-            + rwp_text(rwp)
-            + ".csv"
-        )
+    output_filename = get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory)
+    if os.path.exists(output_filename):
+        return output_filename
     combat_quick_apply.apply(mov_data_file, model_filename, output_filename)
     return output_filename
 
-def visualize_harmonization(f, new_f, ref_data_file, directory, bundles = ''):
+def visualize_harmonization(f, new_f, ref_data_file, directory, bundles = '', title=''):
     cmd = (
         "scripts/combat_visualize_harmonization.py"
         + " "
@@ -81,18 +99,24 @@ def visualize_harmonization(f, new_f, ref_data_file, directory, bundles = ''):
     )
     if bundles != '':
         cmd += f" --bundles {bundles}"
+    if title != '':
+        cmd += f" --outname {title}"
     subprocess.call(cmd, shell=True)
 
 def QC(ref_data, output_filename, output_model_filename):
     return combat_quick_QC.QC(ref_data, output_filename, output_model_filename)
     
-def compare_with_compilation(df):
-    compilation_df = get_compilation_df(df)
+def compare_with_compilation(df, directory, harmonizartion_method):
+    # compilation_df = get_compilation_df(df)
+    compilation_df = get_ground_truth_df(df, directory, harmonizartion_method)
     # Charger le DataFrame COMPILATION
 
     # Filtrer les patients de COMPILATION qui sont dans df en utilisant les sid
     common_sids = df['sid'].unique()
     filtered_compilation_df = compilation_df[compilation_df['sid'].isin(common_sids)]
+
+    if len(filtered_compilation_df) != len(df):
+        raise ValueError(f"Attention: Nombre de lignes différent entre df ({len(df)}) et filtered_compilation_df ({len(comp_filt)})")
 
     # Initialiser une liste pour stocker les résultats
     comparison_df = pd.DataFrame()
@@ -115,13 +139,48 @@ def compare_with_compilation(df):
 
     return mean_df
 
-def compare_with_compilation_var(df):
-    compilation_df = get_compilation_df(df)
+def compare_with_compilation_SMAPE(df, directory, harmonizartion_method):
+    # compilation_df = get_compilation_df(df)
+    compilation_df = get_ground_truth_df(df, directory, harmonizartion_method)
+    compilation_df = compilation_df[~compilation_df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
+    common_sids = df['sid'].unique()
+    comp_filt = compilation_df[compilation_df['sid'].isin(common_sids)]
+
+    if len(comp_filt) != len(df):
+        raise ValueError(f"Attention: Nombre de lignes différent entre df ({len(df)}) et filtered_compilation_df ({len(comp_filt)})")
+
+    def smape(y_true, y_pred):
+        denom = (np.abs(y_true) + np.abs(y_pred)) / 2
+        return np.where(denom == 0, 0, np.abs(y_true - y_pred) / denom) * 100
+
+    comparison_df = pd.DataFrame()
+    for bundle in df['bundle'].unique():
+        merged = pd.merge(
+            df[df['bundle'] == bundle],
+            comp_filt[comp_filt['bundle'] == bundle],
+            on=['sid', 'bundle'],
+            suffixes=('_df', '_compilation')
+        )
+        comparison_df[bundle] = smape(
+            merged['mean_df'].to_numpy(),
+            merged['mean_compilation'].to_numpy()
+        )
+
+    mean_df = pd.DataFrame(comparison_df.mean()).T
+    mean_df.index = ['SMAPE_mean_%']
+    return mean_df
+
+def compare_with_compilation_var(df, directory, harmonizartion_method):
+    # compilation_df = get_compilation_df(df)
+    compilation_df = get_ground_truth_df(df, directory, harmonizartion_method)
     # Charger le DataFrame COMPILATION
 
     # Filtrer les patients de COMPILATION qui sont dans df en utilisant les sid
     common_sids = df['sid'].unique()
     filtered_compilation_df = compilation_df[compilation_df['sid'].isin(common_sids)]
+
+    if len(filtered_compilation_df) != len(df):
+        raise ValueError(f"Attention: Nombre de lignes différent entre df ({len(df)}) et filtered_compilation_df ({len(comp_filt)})")
 
     # Initialiser une liste pour stocker les résultats
     comparison_df = pd.DataFrame()
@@ -263,19 +322,37 @@ def get_csv_res(mov_data_file, directory, harmonizartion_method,metric):
 
 
 def get_compilation_df(df):
-    disease = [d for d in df['disease'].unique() if d != 'HC'][0]
+    disease = df['site'].iloc[0].split('_', 1)[0]
     metric = df['metric'].unique()[0]
 
-    compilation_folder = os.path.join('DONNES', 'COMPILATIONS')
+    compilation_folder = os.path.join('DONNES_F', 'COMPILATIONS_AUG_3')
     compilation_file = os.path.join(compilation_folder, f"{disease}_combination_all_metrics_CamCAN.csv.gz")
     compilation_df = pd.read_csv(compilation_file, compression='gzip')
     return compilation_df[compilation_df['metric'] == metric]
 
+def get_ground_truth_df(df, directory, harmonizartion_method):
+    metric = df['metric'].unique()[0]
+    gt_folder = os.path.join(directory, 'hc')
+    compilation_file = os.path.join(
+            gt_folder,
+            str(df.site.unique()[0])
+            + "."
+            + metric
+            + "."
+            + harmonizartion_method
+            + "."
+            + robust_text("No")
+            + "."
+            + rwp_text(False)
+            + ".csv"
+        )
+    compilation_df = pd.read_csv(compilation_file)
+    return compilation_df
 
 def get_camcan_df(df):
     metric = df['metric'].unique()[0]
 
-    compilation_folder = os.path.join('DONNES', 'CamCAN')
+    compilation_folder = os.path.join('DONNES_F', 'CamCAN')
     camcan_file = os.path.join(compilation_folder, f"CamCAN.{metric}.raw.csv.gz")
     compilation_df = pd.read_csv(camcan_file, compression='gzip')
     return compilation_df

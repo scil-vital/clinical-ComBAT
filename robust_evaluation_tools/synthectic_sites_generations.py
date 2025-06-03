@@ -9,6 +9,84 @@ from joblib import Parallel, delayed
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
+from clinical_combat.harmonization.QuickCombat import QuickCombat
+
+import matplotlib.pyplot as plt
+
+def save_scatter_plots_from_merged(merged, output_folder="TRUTH"):
+    # Crée le dossier de sortie s'il n'existe pas
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Liste des combinaisons uniques (metric, bundle)
+    unique_combinations = merged[['metric', 'bundle']].drop_duplicates()
+
+    for _, row in unique_combinations.iterrows():
+        metric = row['metric']
+        bundle = row['bundle']
+
+        # Filtrer le merged selon metric et bundle
+        filt = merged[(merged['metric'] == metric) & (merged['bundle'] == bundle)]
+
+        # Créer la figure
+        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+        fig.suptitle(f"Scatter Plots for Metric: {metric} | Bundle: {bundle}", fontsize=16)
+
+        # Rangée du haut (OLD)
+        axes[0, 0].scatter(filt['age'], filt['mean_combined'])
+        axes[0, 0].set_title("Combined - Mean")
+
+        axes[0, 1].scatter(filt['age'], filt['caca_biased_old'])
+        axes[0, 1].set_title("Old - Caca")
+
+        axes[0, 2].scatter(filt['age'], filt['mean_biased_old'])
+        axes[0, 2].set_title("Old - Mean")
+
+        # Rangée du bas (NEW)
+        axes[1, 0].scatter(filt['age'], filt['mean_combined'])
+        axes[1, 0].set_title("Combined - Mean (Again)")
+
+        axes[1, 1].scatter(filt['age'], filt['caca_biased_new'])
+        axes[1, 1].set_title("New - Caca")
+
+        axes[1, 2].scatter(filt['age'], filt['mean_biased_new'])
+        axes[1, 2].set_title("New - Mean")
+
+        # Ajout des labels pour chaque sous-graphique
+        for ax in axes.flat:
+            ax.set_xlabel("Age")
+            ax.set_ylabel("Value")
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Laisse de la place pour le titre principal
+
+        # Nom du fichier
+        filename = f"{metric}_{bundle}_scatter.png".replace("/", "-")
+        filepath = os.path.join(output_folder, filename)
+        plt.savefig(filepath)
+        plt.close(fig)
+
+    return f"{len(unique_combinations)} figures saved in '{output_folder}'"
+
+# Ce bloc est prêt à être utilisé dans un script Python ou un notebook
+# Exemple : save_scatter_plots(combined, biased_df_old, biased_df)
+
+def get_design_matrices(df, ignore_handedness=False, ignore_sex=False):
+    design = []
+    Y = []
+    for bundle in list(np.unique(df["bundle"])):
+        data = df.query("bundle == @bundle")
+        hstack_list = []
+        hstack_list.append(np.ones(len(data["sid"])))  # intercept
+        if not ignore_sex:
+            hstack_list.append(QuickCombat.to_category(data["sex"]))
+        if not ignore_handedness:
+            hstack_list.append(QuickCombat.to_category(data["handedness"]))
+        ages = data["age"].to_numpy()
+        hstack_list.append(ages)
+        design.append(np.array(hstack_list))
+        Y.append(data["mean"].to_numpy())
+    return design, Y
+    
+
 def split_train_test(df, test_size=0.2, random_state=None):
     """
     Split the DataFrame into training and testing sets, ensuring the same proportion of HC and non-HC patients
@@ -67,7 +145,7 @@ def sample_patients(df, num_patients, disease_ratio,index):
     return sampled_df
 
 
-def generate_biaised_data(df1, df2, fixed_bias=False,
+def generate_biaised_data(df1, df2,ssv, fixed_bias=False,
                 additive_uniform_low=-3, additive_uniform_high=3, 
                 multiplicative_uniform_low=0.5, multiplicative_uniform_high=2, 
                 additive_std_low=0.01, additive_std_high=0.1, 
@@ -109,7 +187,7 @@ def generate_biaised_data(df1, df2, fixed_bias=False,
         # Générer un biais additif et multiplicatif spécifique au metric_bundle
         if fixed_bias:
             additive_bias_per_bundle[bundle] = 2
-            multiplicative_bias_per_bundle[bundle] = 1.5
+            multiplicative_bias_per_bundle[bundle] = 1.25
         else:
             additive_bias_per_bundle[bundle] = np.random.normal(loc=additive_mean, scale=additive_std)
             multiplicative_bias_per_bundle[bundle] = np.random.normal(loc=multiplicative_mean, scale=multiplicative_std)
@@ -117,7 +195,33 @@ def generate_biaised_data(df1, df2, fixed_bias=False,
     
     # Appliquer les biais indépendamment à df1 et df2 en utilisant les mêmes biais générés
     combined = pd.concat([df1, df2], ignore_index=True)
-    biased_df = apply_bias(combined, additive_bias_per_bundle, multiplicative_bias_per_bundle)
+    if ssv == 'v2':
+        biased_df = apply_bias_2(df1,df2, additive_bias_per_bundle, multiplicative_bias_per_bundle)
+    else:
+        biased_df = apply_bias(combined, additive_bias_per_bundle, multiplicative_bias_per_bundle)
+    
+        
+    
+    # combined_renamed = combined.rename(columns={
+    #     'mean': 'mean_combined'
+    # })
+
+    # biased_old_renamed = biased_df_old.rename(columns={
+    #     'mean': 'mean_biased_old',
+    #     'caca': 'caca_biased_old'
+    # })
+
+    # biased_new_renamed = biased_df.rename(columns={
+    #     'mean': 'mean_biased_new',
+    #     'caca': 'caca_biased_new'
+    # })
+    # merged = combined_renamed.merge(biased_old_renamed, on=['metric', 'bundle', 'sid'])
+    # merged = merged.merge(biased_new_renamed, on=['metric', 'bundle', 'sid'])
+    # merged_aa = merged[merged['sid'].isin(df1['sid'])]
+
+    # save_scatter_plots_from_merged(merged_aa)
+
+    
     biased_df1 = biased_df[biased_df['sid'].isin(df1['sid'])]
     biased_df2 = biased_df[biased_df['sid'].isin(df2['sid'])]
     bias_parameters = {
@@ -139,13 +243,18 @@ def apply_bias(dataframe, additive_bias_per_bundle, multiplicative_bias_per_bund
         # Filtrer le DataFrame pour le bundle actuel
         bundle_df = biased_df[biased_df[bundle_column] == bundle]
 
+        bundle_df_hc = bundle_df[bundle_df['disease'] == 'HC']
+
+        X_hc = bundle_df_hc[['age', 'sex', 'handedness']]
+        y_hc = bundle_df_hc['mean']
+
         # Préparer les covariables pour la régression
         X = bundle_df[['age', 'sex', 'handedness']]
         y = bundle_df['mean']
-        
+
         # Ajuster le modèle de régression linéaire pour le bundle
         model = LinearRegression()
-        model.fit(X, y)
+        model.fit(X_hc, y_hc)
         
         # Calculer les prédictions et les résidus pour le bundle
         predicted_mean = model.predict(X)
@@ -157,18 +266,58 @@ def apply_bias(dataframe, additive_bias_per_bundle, multiplicative_bias_per_bund
         
         # Appliquer les biais aux résidus centrés et réintégrer les effets des covariables
         biased_means_bundle = residuals * multiplicative_bias + additive_bias * np.std(residuals) + predicted_mean
+        biased_df.loc[biased_df[bundle_column] == bundle, 'caca'] = residuals
         biased_df.loc[biased_df[bundle_column] == bundle, 'mean'] = biased_means_bundle
     
     # Assigner les valeurs biaisées calculées au DataFrame
     return biased_df
 
-def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, data_path):
+def apply_bias_2(df1,df2, additive_bias_per_bundle, multiplicative_bias_per_bundle):
+    biased_df_all = pd.concat([df1, df2], ignore_index=True)
+    new_biased_df = pd.DataFrame()
+    for metric in biased_df_all['metric'].unique():
+        # Filtrer le DataFrame pour le metric actuel
+        biased_df = biased_df_all[biased_df_all['metric'] == metric]
+        df1_metric = df1[df1['metric'] == metric]
+        # Appliquer les biais pour le metric actuel
+        biased_df = biased_df.sort_values(by=["site", "sid", "bundle"])
+        df1_metric = df1_metric.sort_values(by=["site", "sid", "bundle"])
+        ignore_handedness = True
+        ignore_sex = False
+        if df1_metric['sex'].nunique() == 1:
+            ignore_sex = True
+        if df1_metric['handedness'].nunique() == 1:
+            ignore_handedness = True
+        design, y = get_design_matrices(biased_df, ignore_handedness, ignore_sex)
+        design_hc, y_hc = get_design_matrices(df1_metric[df1_metric['disease'] == 'HC'], ignore_handedness, ignore_sex)
+        alpha, beta = QuickCombat.get_alpha_beta(design_hc, y_hc)
+
+        for i, bundle in enumerate(list(np.unique(biased_df["bundle"]))):
+                    # Récupérer les biais pour le bundle actuel
+            additive_bias = additive_bias_per_bundle[metric+"_"+bundle]
+            multiplicative_bias = multiplicative_bias_per_bundle[metric+"_"+bundle]
+
+            bundle_df = biased_df[biased_df["bundle"] == bundle]
+            covariate_effect = np.dot(design[i][1:, :].transpose(), beta[i])
+            biased_df.loc[biased_df["bundle"] == bundle, 'caca'] = (y[i] - covariate_effect - alpha[i])
+            biased_df.loc[biased_df["bundle"] == bundle, 'mean'] = (y[i] - covariate_effect - alpha[i]) * multiplicative_bias + additive_bias * np.std(y[i]) + (covariate_effect + alpha[i])
+        new_biased_df = pd.concat([new_biased_df, biased_df], ignore_index=True)
+    # Assigner les valeurs biaisées calculées au DataFrame
+    return new_biased_df
+
+def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, data_path, ssv= 'v1', fixed_biais=False):
     sizeDir = os.path.join(directory, f"{sample_size}_{int(disease_ratio*100)}")
     tempDir = os.path.join(sizeDir, f"{i}")
     os.makedirs(tempDir, exist_ok=True)
 
-    train_df_biaised, test_df_biaised, gammas, deltas, parameters = generate_biaised_data(train_df, test_df)
-    sampled_df_biaied = sample_patients(train_df_biaised, sample_size, disease_ratio, i)
+    if ssv == 'v2':
+        sampled_df= sample_patients(train_df, sample_size, disease_ratio, i)
+        sampled_df_biaied, test_df_biaised, gammas, deltas, parameters = generate_biaised_data(sampled_df, test_df, ssv, fixed_biais)
+    else:
+        train_df_biaised, test_df_biaised, gammas, deltas, parameters = generate_biaised_data(train_df, test_df, ssv, fixed_biais)
+        sampled_df_biaied = sample_patients(train_df_biaised, sample_size, disease_ratio, i)
+
+    
 
     if 'metric_bundle' in sampled_df_biaied.columns:
         temp_train_file = os.path.join(tempDir, f"train_{sample_size}_{int(disease_ratio*100)}_{i}_all.csv")
@@ -187,8 +336,9 @@ def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, da
             metric_test_file = os.path.join(tempDir, f"test_{sample_size}_{int(disease_ratio*100)}_{i}_{metric}.csv")
             metric_test_df.to_csv(metric_test_file, index=False)
 
-            # Visualization - en commentaire si tu veux pas l'exécuter
-            # subprocess.call([...])
+            # subprocess.call(
+            # f"scripts/combat_visualize_data.py {data_path} {temp_train_file} --out_dir {os.path.join(tempDir, 'VIZ')} -f",
+            # shell=True)
 
     else:
         temp_train_file = os.path.join(tempDir, f"train_{sample_size}_{int(disease_ratio*100)}_{i}.csv")
@@ -207,17 +357,17 @@ def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, da
             f"scripts/combat_visualize_data.py {data_path} {temp_test_file} --out_dir {os.path.join(tempDir, 'VIZ_TEST')} -f",
             shell=True)
 
-def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path, disease=None, n_jobs=-1):
+def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path, SYNTHETIC_SITES_VERSION='v1', disease=None, fixed_biais=False, n_jobs=-1):
     df = pd.read_csv(data_path)
     df = df[~df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
     if disease is not None:
         df = df[(df['disease'] == disease) | (df['disease'] == 'HC')]
 
-    train_df, test_df = split_train_test(df, test_size=0.2, random_state=42)
+    train_df, test_df = split_train_test(df, test_size=0.05, random_state=42)
 
     Parallel(n_jobs=n_jobs)(
     delayed(process_test)(
-        sample_size, disease_ratio, i, train_df, test_df, directory, data_path
+        sample_size, disease_ratio, i, train_df, test_df, directory, data_path, SYNTHETIC_SITES_VERSION, fixed_biais
     )
     for sample_size in sample_sizes
     for disease_ratio in disease_ratios

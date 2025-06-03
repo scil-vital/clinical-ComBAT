@@ -132,7 +132,6 @@ def get_matching_indexes(file_path, subset_path):
 
     return matching_indexes
 
-
 import pandas as pd
 import numpy as np
 
@@ -140,46 +139,42 @@ def z_score_detection(df_file,
                       mean_col: str = "mean_no_cov",
                       threshold: float = 1.5) -> list[str]:
     """
-    Repère les patients (sid) dont la moyenne du |z-score| dépasse `threshold`
-    et renvoie la liste de ces sid.
-
-    Paramètres
-    ----------
-    df : DataFrame
-        Doit contenir les colonnes 'sid', 'metric_bundle' et `mean_col`.
-    mean_col : str
-        Colonne sur laquelle on calcule le z-score (défaut 'mean_no_cov').
-    threshold : float
-        Seuil de la moyenne du z-score (défaut 1.5).
+    Repère les patients (sid) dont la moyenne du |z-score| dépasse `threshold`,
+    en s'assurant qu'au moins deux patients ne soient pas considérés comme outliers.
 
     Retour
     ------
     outlier_sids : list[str]
         Liste des sid identifiés comme outliers.
     """
-    # 1) stats par metric_bundle
-
     df = pd.read_csv(df_file)
+
+    # 1) Calcul des stats globales
     stats = (df.groupby("metric_bundle")[mean_col]
                .agg(['mean', 'std'])
                .rename(columns={'mean': 'global_mean', 'std': 'global_std'}))
-    stats["global_std"].replace(0, 1e-6, inplace=True)  # éviter div/0
+    stats['global_std'] = stats['global_std'].replace(0, 1e-6)
 
-    # 2) merge pour récupérer les stats
+    # 2) Merge pour ajouter les stats
     df_z = df.merge(stats, on="metric_bundle", how="left")
 
-    # 3) |z-score|
-    df_z["abs_zscore"] = ((df_z[mean_col] - df_z["global_mean"])
-                          / df_z["global_std"]).abs()
+    # 3) Calcul du z-score absolu
+    df_z["abs_zscore"] = ((df_z[mean_col] - df_z["global_mean"]) / df_z["global_std"]).abs()
 
-    # 4) moyenne |z-score| par patient
+    # 4) Moyenne par patient
     mean_z = (df_z.groupby("sid", as_index=False)
                     .agg(mean_abs_zscore=("abs_zscore", "mean")))
 
-    # 5) liste des outliers
-    outlier_sids = mean_z.loc[
-        mean_z["mean_abs_zscore"] > threshold, "sid"
-    ].tolist()
+    # 5) Identifier les outliers
+    outlier_mask = mean_z["mean_abs_zscore"] > threshold
+    outlier_sids = mean_z.loc[outlier_mask, "sid"].tolist()
+
+    # 6) S'assurer qu'il reste au moins deux patients
+    if len(mean_z) - len(outlier_sids) < 2:
+        # Trier les outliers par score décroissant (les plus extrêmes d'abord)
+        sorted_outliers = mean_z.loc[outlier_mask].sort_values("mean_abs_zscore", ascending=False)
+        n_to_remove = len(mean_z) - 2
+        outlier_sids = sorted_outliers.head(n_to_remove)["sid"].tolist()
 
     return outlier_sids
 
