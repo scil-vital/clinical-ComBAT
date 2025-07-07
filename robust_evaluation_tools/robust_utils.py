@@ -197,3 +197,14 @@ def show_scatter_plot(df, column, bundle):
 def get_camcan_file(metric):
     compilation_folder = os.path.join('DONNES_F', 'CamCAN')
     return os.path.join(compilation_folder, f"CamCAN.{metric}.raw.csv.gz")
+
+def remove_covariates_effects_metrics(df):
+    if 'mean_no_cov' in df.columns:
+        df = df.drop(columns=['mean_no_cov'])
+    total = pd.DataFrame()
+    for metrics in df['metric'].unique():
+        df_metrics = df[df['metric'] == metrics]
+        df_metrics = remove_covariates_effects(df_metrics)
+        total = pd.concat([total, df_metrics], ignore_index=True)
+    return total
+

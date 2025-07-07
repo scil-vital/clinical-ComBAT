@@ -28,10 +28,9 @@ def _pivot_features(df, value_col="zscore", bundle_col="metric_bundle"):
 # ------------------------------------------------------------------
 # Fonction principale
 # ------------------------------------------------------------------
-def predict_malades_MLP(df_file, run_name, threshold=0.5):
+def predict_malades_MLP(df, run_name, threshold=0.5):
     # Charge les artefacts
 
-    df = pd.read_csv(df_file)
     state_dict = torch.load(MODEL_DIR / f"{run_name}_weights.pt", map_location="cpu")
     # 1) recharge le JSON d’hyperparams
 

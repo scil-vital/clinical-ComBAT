@@ -135,7 +135,7 @@ def get_matching_indexes(file_path, subset_path):
 import pandas as pd
 import numpy as np
 
-def z_score_detection(df_file,
+def z_score_detection(df,
                       mean_col: str = "mean_no_cov",
                       threshold: float = 1.5) -> list[str]:
     """
@@ -147,7 +147,6 @@ def z_score_detection(df_file,
     outlier_sids : list[str]
         Liste des sid identifiés comme outliers.
     """
-    df = pd.read_csv(df_file)
 
     # 1) Calcul des stats globales
     stats = (df.groupby("metric_bundle")[mean_col]

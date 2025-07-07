@@ -13,6 +13,28 @@ from clinical_combat.harmonization.QuickCombat import QuickCombat
 
 import matplotlib.pyplot as plt
 
+def augment_df(df, new_copies=2):
+    
+    augmented_dfs = [df]
+
+    for copy_index in range(1, new_copies):
+        temp_df = df.copy()
+        sid_modifications = {}
+        for sid_val in temp_df['sid'].unique():
+            sid_modifications[sid_val] = np.random.choice([-1, 1])
+
+        temp_df['age'] = temp_df.apply(
+            lambda row: row['age'] + sid_modifications[row['sid']], axis=1
+        )
+        temp_df['sid'] = temp_df['sid'].astype(str) + f'_aug{copy_index}'
+        temp_df['mean'] = temp_df['mean'] * (
+            1 + np.random.choice([-0.02,-0.01, 0.01,0.02], size=len(temp_df))
+        )
+
+        augmented_dfs.append(temp_df)
+    final_df = pd.concat(augmented_dfs, ignore_index=True)
+    return final_df
+
 def save_scatter_plots_from_merged(merged, output_folder="TRUTH"):
     # Crée le dossier de sortie s'il n'existe pas
     os.makedirs(output_folder, exist_ok=True)
@@ -35,8 +57,8 @@ def save_scatter_plots_from_merged(merged, output_folder="TRUTH"):
         axes[0, 0].scatter(filt['age'], filt['mean_combined'])
         axes[0, 0].set_title("Combined - Mean")
 
-        axes[0, 1].scatter(filt['age'], filt['caca_biased_old'])
-        axes[0, 1].set_title("Old - Caca")
+        axes[0, 1].scatter(filt['age'], filt['whatever_biased_old'])
+        axes[0, 1].set_title("Old - whatever")
 
         axes[0, 2].scatter(filt['age'], filt['mean_biased_old'])
         axes[0, 2].set_title("Old - Mean")
@@ -45,8 +67,8 @@ def save_scatter_plots_from_merged(merged, output_folder="TRUTH"):
         axes[1, 0].scatter(filt['age'], filt['mean_combined'])
         axes[1, 0].set_title("Combined - Mean (Again)")
 
-        axes[1, 1].scatter(filt['age'], filt['caca_biased_new'])
-        axes[1, 1].set_title("New - Caca")
+        axes[1, 1].scatter(filt['age'], filt['whatever_biased_new'])
+        axes[1, 1].set_title("New - whatever")
 
         axes[1, 2].scatter(filt['age'], filt['mean_biased_new'])
         axes[1, 2].set_title("New - Mean")
@@ -204,12 +226,12 @@ def generate_biaised_data(df1, df2,ssv, fixed_bias=False,
 
     # biased_old_renamed = biased_df_old.rename(columns={
     #     'mean': 'mean_biased_old',
-    #     'caca': 'caca_biased_old'
+    #     'whatever': 'whatever_biased_old'
     # })
 
     # biased_new_renamed = biased_df.rename(columns={
     #     'mean': 'mean_biased_new',
-    #     'caca': 'caca_biased_new'
+    #     'whatever': 'whatever_biased_new'
     # })
     # merged = combined_renamed.merge(biased_old_renamed, on=['metric', 'bundle', 'sid'])
     # merged = merged.merge(biased_new_renamed, on=['metric', 'bundle', 'sid'])
@@ -262,7 +284,7 @@ def apply_bias(dataframe, additive_bias_per_bundle, multiplicative_bias_per_bund
         
         # Appliquer les biais aux résidus centrés et réintégrer les effets des covariables
         biased_means_bundle = residuals * multiplicative_bias + additive_bias * np.std(residuals) + predicted_mean
-        biased_df.loc[biased_df[bundle_column] == bundle, 'caca'] = residuals
+        # biased_df.loc[biased_df[bundle_column] == bundle, 'whatever'] = residuals
         biased_df.loc[biased_df[bundle_column] == bundle, 'mean'] = biased_means_bundle
     
     # Assigner les valeurs biaisées calculées au DataFrame
@@ -393,3 +415,21 @@ def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path
     for disease_ratio in disease_ratios
     for i in range(num_tests)
 )
+    
+
+def generate_sites_no_file(sample_sizes, disease_ratios, num_tests, df,  disease=None, n_jobs=-1):
+    df = df[~df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
+    df = df[~((df['disease'] == 'HC') & (df['old_site'] != 'CamCAN'))]
+    if disease == "ASTMIX":
+        df = df[df['disease'].isin(['AD', 'SCHZ', 'TBI', 'HC'])]
+    elif disease is not None:
+        df = df[(df['disease'] == disease) | (df['disease'] == 'HC')]
+    dfs = Parallel(n_jobs=n_jobs)(
+        delayed(sample_patients)(
+            df, sample_size, disease_ratio, i
+        )
+        for sample_size in sample_sizes
+        for disease_ratio in disease_ratios
+        for i in range(num_tests)
+    )
+    return dfs 
