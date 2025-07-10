@@ -5,7 +5,7 @@ Script to compute the quality control of the transfer function from a moving sit
 reference site using Bhattacharyya distance.
 
 # Usage :
-# Use the classic method to harmonize the moving site data to the reference site data 
+# Use the pairwise method to harmonize the moving site data to the reference site data 
 # (linear)
 combat_quick_QC.py reference_site.raw.csv.gz moving_site.raw.csv.gz \
                   reference_site-moving_site.model.metric_name.csv
@@ -93,7 +93,7 @@ def main():
         args.degree_qc = model.degree
 
     QC = from_model_name(
-        "classic",
+        "pairwise",
         ignore_handedness_covariate=model.ignore_handedness_covariate,
         ignore_sex_covariate=model.ignore_sex_covariate,
         use_empirical_bayes=False,
