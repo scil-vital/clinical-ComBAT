@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Script to compute and apply the transfer function from a moving site to a reference site.
 
@@ -7,7 +7,7 @@ This script calls combat_quick_fit.py, combat_quick_apply.py, combat_visualize_m
 combat_visualize_harmonization.py. The exact commands are printed in the terminal.
 
 Harmonization methods:
-    classic:
+    pairwise:
             uses both moving and reference data to fit the covariates regression parameters
             (Beta_mov). Fortin et al., 2017 method, see https://pubmed.ncbi.nlm.nih.gov/28826946/
     clinic (default):
@@ -22,8 +22,8 @@ Examples:
 # Harmonized with the Clinic method with un polynomial degree of 2
 combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
 
-# Harmonized with the Classic method (i.e. Fortin et al., (2017) method)
-combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method classic
+# Harmonized with the Pairwise method (i.e. Fortin et al., (2017) method)
+combat_quick.py reference_site.raw.csv.gz moving_site.raw.csv.gz --method pairwise
 
 """
 import argparse
@@ -71,7 +71,7 @@ def _build_arg_parser():
         "-m",
         "--method",
         default="clinic",
-        choices=["classic", "clinic"],
+        choices=["pairwise", "clinic"],
         help="Harmonization method.",
     )
     p.add_argument(
@@ -111,13 +111,13 @@ def _build_arg_parser():
         "--regul_mov",
         type=float,
         help="Regularization parameter for the moving site data. Set to '-1' for automatic tuning "
-        + "[default=0 for classic; -1 for clinic]",
+        + "[default=0 for pairwise; -1 for clinic]",
     )
     p.add_argument(
         "--degree",
         type=int,
         help="Degree of the polynomial fit in Combat. "
-        + "[default=1 for classic; 2 for clinic].",
+        + "[default=1 for pairwise; 2 for clinic].",
     )
     p.add_argument(
         "--nu",

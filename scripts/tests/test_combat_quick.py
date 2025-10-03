@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
 import pathlib
@@ -11,11 +12,11 @@ import numpy.testing as npt
 import clinical_combat
 
 
-def test_quick_combat_classic():
+def test_quick_combat_pairwise():
     folder = pathlib.Path(clinical_combat.__file__).resolve().parent.parent
     data_path = os.path.join(folder, "docs/data/")
 
-    out = os.path.join(folder, "scripts/tests/out/QuickCombat_classic")
+    out = os.path.join(folder, "scripts/tests/out/QuickCombat_pairwise")
     if os.path.exists(out):
         shutil.rmtree(out)
 
@@ -25,24 +26,24 @@ def test_quick_combat_classic():
         + "CamCAN.md.raw.csv.gz "
         + data_path
         + "ShamCamCAN.md.raw.csv.gz "
-        + "-m classic "
+        + "-m pairwise "
         + "--out_dir "
         + out
     )
     subprocess.call(cmd, shell=True)
 
-    model = os.path.join(out, "ShamCamCAN-CamCAN.md.classic.model.csv")
-    data = os.path.join(out, "ShamCamCAN.md.classic.csv.gz")
+    model = os.path.join(out, "ShamCamCAN-CamCAN.md.pairwise.model.csv")
+    data = os.path.join(out, "ShamCamCAN.md.pairwise.csv.gz")
     fig1 = os.path.join(
         out, "AgeCurve_CamCAN-ShamCamCAN_raw_md_mniIITmaskskeletonFA.png"
     )
     fig2 = os.path.join(
-        out, "AgeCurve_CamCAN-ShamCamCAN_classic_md_mniIITmaskskeletonFA.png"
+        out, "AgeCurve_CamCAN-ShamCamCAN_pairwise_md_mniIITmaskskeletonFA.png"
     )
     fig3 = os.path.join(
-        out, "DataModels_CamCAN-ShamCamCAN_classic_md_mniIITmaskskeletonFA.png"
+        out, "DataModels_CamCAN-ShamCamCAN_pairwise_md_mniIITmaskskeletonFA.png"
     )
-    dist1 = os.path.join(out, "ShamCamCAN.md.classic.bhattacharrya.txt")
+    dist1 = os.path.join(out, "ShamCamCAN.md.pairwise.bhattacharrya.txt")
     dist2 = os.path.join(out, "ShamCamCAN.md.raw.bhattacharrya.txt")
 
     npt.assert_(os.path.exists(model), msg="Model file not generated.")
@@ -57,8 +58,8 @@ def test_quick_combat_classic():
 
     model_ = os.path.join(
         folder,
-        "scripts/tests/target_out/QuickCombat_classic",
-        "ShamCamCAN-CamCAN.md.classic.model.csv",
+        "scripts/tests/target_out/QuickCombat_pairwise",
+        "ShamCamCAN-CamCAN.md.pairwise.model.csv",
     )
     a = np.loadtxt(model, dtype=str, delimiter=",")
     b = np.loadtxt(model_, dtype=str, delimiter=",")
@@ -66,8 +67,8 @@ def test_quick_combat_classic():
 
     data_ = os.path.join(
         folder,
-        "scripts/tests/target_out/QuickCombat_classic",
-        "ShamCamCAN.md.classic.csv.gz",
+        "scripts/tests/target_out/QuickCombat_pairwise",
+        "ShamCamCAN.md.pairwise.csv.gz",
     )
     a = pd.read_csv(data)["mean"].to_numpy()
     b = pd.read_csv(data_)["mean"].to_numpy()

@@ -5,7 +5,7 @@ import pandas as pd
 from clinical_combat.harmonization.QuickCombat import QuickCombat
 
 
-class QuickCombatClassic(QuickCombat):
+class QuickCombatPairwise(QuickCombat):
     """
     Quick ComBat: Harmonize the moving site to the reference site.
     Regression parameters are jointly fitted as in Fortin et al. 2017.
@@ -138,7 +138,7 @@ class QuickCombatClassic(QuickCombat):
         """
         super().set_model_fit_params(ref_data, mov_data)
         self.model_params["regul"] = self.regul
-        self.model_params["name"] = "classic"
+        self.model_params["name"] = "pairwise"
 
 
     def standardize_moving_data(self, X, Y):
@@ -165,7 +165,7 @@ class QuickCombatClassic(QuickCombat):
 
     def fit(self, ref_data, mov_data):
         """
-        Combat Classic fit. The moving site beta and alpha are fitted using all 
+        Combat Pairwise fit. The moving site beta and alpha are fitted using all 
         data.
 
         ref_data: DataFrame
