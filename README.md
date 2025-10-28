@@ -1,15 +1,27 @@
 # Clinical-ComBAT
 
-Reference package for ComBAT harmonization of clinical MRI data. It ships the
-ComBAT implementations for adapting clinical sites to a reference site
-along with ready-to-run scripts to prepare datasets, fit a model, apply the
-harmonization and analyze the outputs. While Clinical-ComBAT was designed and tested for the harmonization of diffusion MRI metrics (like fractional anisotropy, mean diffusivity, apparent fiber density) it can also be used on other type of data like volumetric data.
+Reference package for ComBAT harmonization of clinical MRI data. It ships the ComBAT implementations for adapting clinical sites to a reference site along with ready-to-run scripts to prepare datasets, fit a model, apply the harmonization and analyze the outputs. While Clinical-ComBAT was designed and tested for the harmonization of diffusion MRI metrics (like fractional anisotropy, mean diffusivity, apparent fiber density) it can also be used on other type of data like volumetric data.
 
 ## References
 
-- Girard, G., Edde, M., Dumais, F., et al. (2025). *Clinical-ComBAT: a diffusion MRI harmonization method for clinical normative modeling applications*.  (to be submitted).
-- Jodoin, P.-M., Edde, M., Girard, G., et al. (2025). ComBAT harmonization for diffusion MRI: Challenges and best practices. (submitted). https://arxiv.org/abs/2505.14722
+- Girard, G., Edde, M., Dumais, F., et al. (2025). *Clinical-ComBAT: a diffusion MRI harmonization method for clinical normative modeling applications*.  Submitted to Medical Image Analysis.
+- Jodoin, P.-M., Edde, M., Girard, G., et al. (2025). ComBAT harmonization for diffusion MRI: Challenges and best practices. accepted at Nature Scientific Reports. https://arxiv.org/abs/2505.14722
 - Fortin, J.-P., Parker, D., Tun¸c, B., et al. (2017). Harmonization of multi-site diffusion tensor imaging data. *NeuroImage*, 161, 149–170. https://doi.org/10.1016/j.neuroimage.2017.08.047
+
+## Licence
+
+Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
+
+This work is licensed under a
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License][cc-by-nc-sa].
+
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-image]][cc-by-nc-sa]
+
+[cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
+[cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
+[cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
+
+You can copy, redistribute, and adapt this work, but only for **non-commercial purposes**. You must give the original creator credit (Attribution), and if you adapt the work, your new version must be shared under the same or a compatible license (ShareAlike). The work cannot be used for commercial gain, meaning for activities primarily intended to generate money.  In such case, please contact [Pierre-Marc Jodoin](mailto:pierre-marc.jodoin@usherbrooke.ca).
 
 ## Quick installation
 
