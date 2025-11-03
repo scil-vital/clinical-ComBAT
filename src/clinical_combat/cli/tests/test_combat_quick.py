@@ -10,7 +10,7 @@ import numpy.testing as npt
 
 from clinical_combat import COMBAT_ROOT
 
-data_path = os.path.join(COMBAT_ROOT, "docs/data/")
+data_path = os.path.join(COMBAT_ROOT, "src/clinical_combat/data/")
 
 def test_quick_combat_pairwise():
     out = os.path.join(COMBAT_ROOT, "src/clinical_combat/cli/tests/out/QuickCombat_pairwise")

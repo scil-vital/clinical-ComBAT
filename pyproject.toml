@@ -48,6 +48,9 @@ dev = ["pytest", "ipython"]
 package-dir = { "" = "src" }
 include-package-data = true
 
+[tool.setuptools.package-data]
+"scilpy.data" = ["src/clinical_combat/data"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
