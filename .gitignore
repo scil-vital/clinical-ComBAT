@@ -5,3 +5,4 @@
 *.cpp
 *.png
 src/clinical_combat/cli/tests/out
+src/clinical_combat.egg-info
