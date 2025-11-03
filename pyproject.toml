@@ -1,0 +1,74 @@
+[build-system]
+requires = [
+    "numpy>=1.23.2",
+    "pandas==2.2.1",
+    "matplotlib==3.6.*",
+    "nibabel==5.3.*",
+    "seaborn==0.13.2",
+    "setuptools==65.6"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clinical-combat"
+version = "1.0.0"
+description = "ComBAT harmonization of clinical MRI data"
+authors = [{ name = "Gabriel Girard"},
+            {name = "Manon Edde"},
+            {name = "Félix Dumais"},
+            {name = "Matthieu Dumont"},
+            {name = "Guillaume Theaud"},
+            {name = "Jean-Christophe Houde"},
+            {name = "Maxime Descoteaux"},
+            {name = "Pierre-Marc Jodoin", email = "Pierre-Marc.Jodoin@USherbrooke.ca"}
+          ]
+readme = "README.md"
+requires-python = ">=3.10, <3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering"
+]
+dependencies = [
+    "numpy>=1.23.2",
+    "pandas==2.2.1",
+    "matplotlib==3.6.*",
+    "seaborn==0.13.2",
+    "nibabel==5.3.*",
+    "setuptools==65.6"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ipython"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
+[project.scripts]
+combat_corrupt_data  = "clinical_combat.cli.combat_corrupt_data:main"
+combat_info  = "clinical_combat.cli.combat_info:main"
+combat_quick_apply  = "clinical_combat.cli.combat_quick_apply:main"
+combat_quick_fit  = "clinical_combat.cli.combat_quick_fit:main"
+combat_quick_QC  = "clinical_combat.cli.combat_quick_QC:main"
+combat_quick  = "clinical_combat.cli.combat_quick:main"
+combat_single_subject_harmonization  = "clinical_combat.cli.combat_single_subject_harmonization:main"
+combat_visualize_data  = "clinical_combat.cli.combat_visualize_data:main"
+combat_visualize_harmonization  = "clinical_combat.cli.combat_visualize_harmonization:main"
+combat_visualize_model  = "clinical_combat.cli.combat_visualize_model:main"
+combat_covariates_modify  = "clinical_combat.cli_dev.combat_covariates_modify:main"
+combat_json_viz_manufacturer  = "clinical_combat.cli_dev.combat_json_viz_manufacturer:main"
+combat_visualize_density  = "clinical_combat.cli_dev.combat_visualize_density:main"
+combat_visualize_errors_cohensd  = "clinical_combat.cli_dev.combat_visualize_errors_cohensd:main"
+combat_visualize_sites_boxplot  = "clinical_combat.cli_dev.combat_visualize_sites_boxplot:main"
+create_tensor_nimh  = "clinical_combat.cli_dev.create_tensor_nimh:main"
+create_tensor_nocov  = "clinical_combat.cli_dev.create_tensor_nocov:main"
+create_tensor  = "clinical_combat.cli_dev.create_tensor:main"

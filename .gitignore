@@ -4,4 +4,4 @@
 *.c
 *.cpp
 *.png
-scripts/tests/out
+src/clinical_combat/cli/tests/out
