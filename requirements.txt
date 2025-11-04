@@ -1,5 +1,0 @@
-numpy>=1.23.2
-pandas==2.2.1
-matplotlib==3.6.*
-seaborn==0.13.2
-setuptools==65.6

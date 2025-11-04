@@ -15,9 +15,11 @@ description = "ComBAT harmonization of clinical MRI data"
 authors = [{ name = "Gabriel Girard"},
             {name = "Manon Edde"},
             {name = "Félix Dumais"},
+            {name = "Yoan David"},
             {name = "Matthieu Dumont"},
             {name = "Guillaume Theaud"},
             {name = "Jean-Christophe Houde"},
+            {name = "Arnaud Boré"},
             {name = "Maxime Descoteaux"},
             {name = "Pierre-Marc Jodoin", email = "Pierre-Marc.Jodoin@USherbrooke.ca"}
           ]
