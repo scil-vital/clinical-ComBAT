@@ -98,154 +98,115 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
 
-    p.add_argument("in_reference", help="Path to CSV for reference site (raw data).")
-    p.add_argument(
-        "in_movings",
-        nargs="+",
-        help="Path to 2 CSVs file for moving site: Raw and harmonized.",
-    )
+    p.add_argument("in_reference",
+                   help="Path to CSV for reference site (raw data).")
+    p.add_argument("in_movings",
+                   nargs="+",
+                   help="Path to 2 CSVs file for moving site: Raw and harmonized.")
 
     out = p.add_argument_group(title="Options for output figure.")
-    out.add_argument(
-        "--out_dir",
-        help="Output directory.[%(default)s]",
-        default="./",
-    )
-    out.add_argument("--outname", help="Filename to save figure.")
-    out.add_argument(
-        "--add_suffix", help="Add suffix to figure title and output PNG filename."
-    )
+    out.add_argument("--out_dir",
+                     default="./",
+                     help="Output directory.[%(default)s]")
+    out.add_argument("--outname",
+                     help="Filename to save figure.")
+    out.add_argument("--add_suffix",
+                     help="Add suffix to figure title and output PNG filename.")
 
-    wdw = p.add_argument_group(
-        title="Window options for the moving average mean and standard "
-        "deviation computation"
-    )
-    wdw.add_argument(
-        "--window_size",
-        type=int,
-        default=20,
-        help="Window size in years. [%(default)s].",
-    )
-    wdw.add_argument(
-        "--window_count",
-        type=int,
-        default=10,
-        help="Minimum number of subjects per window. [%(default)s].",
-    )
-    wdw.add_argument(
-        "--no_dynamic_window",
-        action="store_true",
-        help="Use to avoid updating the window size to have a minimum number of "
-        "subjects per window. Not recommended.",
-    )
-    wdw.add_argument(
-        "--min_subject_per_site",
-        type=int,
-        default=10,
-        help="Exclude site fewer subjects than min_subject_per_site [%(default)s].",
-    )
+    wdw = p.add_argument_group(title="Window options for the "
+                                     "moving average mean and standard "
+                                     "deviation computation")
+    wdw.add_argument("--window_size",
+                     type=int,
+                     default=20,
+                     help="Window size in years. [%(default)s].")
+    wdw.add_argument("--window_count",
+                     type=int,
+                     default=10,
+                     help="Minimum number of subjects per window. [%(default)s].")
+    wdw.add_argument("--no_dynamic_window",
+                     action="store_true",
+                     help="Use to avoid updating the window size to have a minimum number of "
+                          "subjects per window. Not recommended.")
+    wdw.add_argument("--min_subject_per_site",
+                     type=int,
+                     default=10,
+                     help="Exclude site fewer subjects than min_subject_per_site [%(default)s].")
 
     data = p.add_argument_group(title="Options for data selection")
-    data.add_argument(
-        "--ages",
-        nargs=2,
-        default=(20, 90),
-        metavar=("MIN", "MAX"),
-        help="Range of ages to use min, max. Affects only the reference site."
-        " [%(default)s].",
-    )
-    data.add_argument(
-        "--bundles",
-        nargs="+",
-        help="List of bundle to use for figures. To plot all bundles use "
-        "--bundles all. ['mni_IIT_mask_skeletonFA'].",
-    )
-    data.add_argument("--sexes", nargs="+", help="List of sex to use. All by default.")
-    data.add_argument(
-        "--handednesses", nargs="+", help="List of handednesses to use. All by default."
-    )
-    data.add_argument(
-        "--diseases", nargs="+", help="List of diseases to use. All by default."
-    )
+    data.add_argument("--ages",
+                      nargs=2,
+                      default=(20, 90),
+                      metavar=("MIN", "MAX"),
+                      help="Range of ages to use min, max. Affects only the reference site."
+                           " [%(default)s].")
+    data.add_argument("--bundles",
+                      nargs="+",
+                      help="List of bundle to use for figures. To plot all bundles use "
+                      "--bundles all. ['mni_IIT_mask_skeletonFA'].")
+    data.add_argument("--sexes",
+                      nargs="+",
+                      help="List of sex to use. All by default.")
+    data.add_argument("--handednesses",
+                      nargs="+",
+                      help="List of handednesses to use. All by default.")
+    data.add_argument("--diseases",
+                      nargs="+",
+                      help="List of diseases to use. All by default.")
 
     viz = p.add_argument_group(title="Display options")
-    viz.add_argument(
-        "--display_point",
-        action="store_true",
-        help="Show moving site with a scatterplot rather than a curve.",
-    )
-    viz.add_argument(
-        "--display_marginal_hist",
-        action="store_true",
-        help="Add marginal histograms to plot.",
-    )
-    viz.add_argument(
-        "--hide_disease",
-        action="store_true",
-        help="Deletes data corresponding to diseases.",
-    )
-    viz.add_argument(
-        "--hide_percentiles",
-        action="store_true",
-        help="Show data with SD rather than SD per percentiles for both reference and"
-        " moving sites.",
-    )
+    viz.add_argument("--display_point",
+                     action="store_true",
+                     help="Show moving site with a scatterplot rather than a curve.")
+    viz.add_argument("--display_marginal_hist",
+                     action="store_true",
+                     help="Add marginal histograms to plot.")
+    viz.add_argument("--hide_disease",
+                     action="store_true",
+                     help="Deletes data corresponding to diseases.")
+    viz.add_argument("--hide_percentiles",
+                     action="store_true",
+                     help="Show data with SD rather than SD per percentiles for both reference and"
+                          " moving sites.")
 
     plot = p.add_argument_group(title="Options for plot.")
-    plot.add_argument(
-        "--randomize_line",
-        action="store_true",
-        help="Will choose a random color and linestyle for site moving.",
-    )
-    plot.add_argument(
-        "--increase_ylim",
-        type=int,
-        default=5,
-        help="Percentage of increase and decrease of y-axis limit [%(default)s].",
-    )
-    plot.add_argument(
-        "--fixed_ylim",
-        nargs=2,
-        metavar=("MIN", "MAX"),
-        help="Fixed values for y-axis limit.",
-    )
-    plot.add_argument(
-        "--y_axis_percentile",
-        nargs=2,
-        default=(1, 99),
-        metavar=("MIN", "MAX"),
-        help="Range of metric value to use for min,max in percentile [%(default)s].",
-    )
-    plot.add_argument(
-        "--percentiles",
-        nargs="+",
-        default=(5, 25, 50, 75, 95),
-        help="Number of percentile use to add percentile on curve.",
-    )
-    plot.add_argument(
-        "--line_widths",
-        nargs="+",
-        default=(0.25, 1, 2, 1, 0.25),
-        help="Line width for percentile delimitation.",
-    )
-    plot.add_argument(
-        "--line_style",
-        help="Line style for moving site data only. Default is dashed style.",
-    )
+    plot.add_argument("--randomize_line",
+                      action="store_true",
+                      help="Will choose a random color and linestyle for site moving.")
+    plot.add_argument("--increase_ylim",
+                      type=int,
+                      default=5,
+                      help="Percentage of increase and decrease of y-axis limit [%(default)s].")
+    plot.add_argument("--fixed_ylim",
+                      nargs=2,
+                      metavar=("MIN", "MAX"),
+                      help="Fixed values for y-axis limit.")
+    plot.add_argument("--y_axis_percentile",
+                      nargs=2,
+                      default=(1, 99),
+                      metavar=("MIN", "MAX"),
+                      help="Range of metric value to use for min,max in percentile [%(default)s].")
+    plot.add_argument("--percentiles",
+                      nargs="+",
+                      default=(5, 25, 50, 75, 95),
+                      help="Number of percentile use to add percentile on curve.")
+    plot.add_argument("--line_widths",
+                      nargs="+",
+                      default=(0.25, 1, 2, 1, 0.25),
+                      help="Line width for percentile delimitation.")
+    plot.add_argument("--line_style",
+                      help="Line style for moving site data only. Default is dashed style.")
 
     error = p.add_argument_group(
         title="Options to plot error bars."
-        "Designed for single-subject harmonization data."
-    )
-    error.add_argument(
-        "--display_errors", action="store_true", help="Display error bars on the plot."
-    )
-    error.add_argument(
-        "--error_metric",
-        default="uncertainty",
-        choices=["uncertainty", "bounds"],
-        help="Error metric used to display error bar [%(default)s].",
-    )
+        "Designed for single-subject harmonization data.")
+    error.add_argument("--display_errors",
+                       action="store_true",
+                       help="Display error bars on the plot.")
+    error.add_argument("--error_metric",
+                       default="uncertainty",
+                       choices=["uncertainty", "bounds"],
+                       help="Error metric used to display error bar [%(default)s].")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -407,7 +368,7 @@ def main():
                 hist_palette=custom_palette[: len(valid_site_list)],
             )
 
-            ## Reference data
+            # Reference data
             logging.info(
                 "Harmonization method: %s - Display data for reference site: %s ",
                 harmonization,
@@ -478,7 +439,7 @@ def main():
                     args.line_widths,
                 )
 
-            ## Moving site data
+            # Moving site data
             logging.info(
                 "Harmonization method: %s - Display data for moving site: %s ",
                 harmonization,
@@ -521,7 +482,7 @@ def main():
                             df_site["err_upper"].values,
                         ]
                     # Check if error_data is not empty
-                    if np.isnan(error_data).all() == True:
+                    if np.isnan(error_data).all():
                         raise ValueError(
                             "No error data found for: {}, {}".format(bundle, metric)
                         )

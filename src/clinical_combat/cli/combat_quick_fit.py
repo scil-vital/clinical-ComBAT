@@ -10,12 +10,15 @@ Harmonization methods:
             (Beta_mov, variance)
 
 Examples:
-# Use the pairwise method to harmonize the moving site data to the reference site data 
-# (linear)
-combat_quick_fit reference_site.raw.csv.gz moving_site.raw.csv.gz --method pairwise
+# Use the pairwise method to harmonize the moving site data to
+# the reference site data (linear)
+combat_quick_fit reference_site.raw.csv.gz moving_site.raw.csv.gz \
+                 --method pairwise
 
-# Use the clinic method to harmonize the moving site data to the reference site data (non-linear)
-combat_quick_fit reference_site.raw.csv.gz moving_site.raw.csv.gz --method clinic
+# Use the clinic method to harmonize the moving site data to
+# the reference site data (non-linear)
+combat_quick_fit reference_site.raw.csv.gz moving_site.raw.csv.gz \
+                 --method clinic
 """
 
 import argparse
@@ -37,99 +40,71 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    p.add_argument(
-        "ref_data",
-        help="Path to the reference site data.",
-    )
-    p.add_argument(
-        "mov_data",
-        help="Path to the moving site data.",
-    )
-    p.add_argument(
-        "--out_dir",
-        help="Output directory.[%(default)s]",
-        default="./",
-    )
-    p.add_argument(
-        "-o",
-        "--output_model_filename",
-        help="Output CSV model filename."
-        + "['ref_site-moving-site.model.metric_name.csv']",
-        default="",
-    )
-    p.add_argument(
-        "-m",
-        "--method",
-        default="clinic",
-        choices=["pairwise", "clinic"],
-        help="Harmonization method.",
-    )
-    p.add_argument(
-        "--ignore_sex",
-        action="store_true",
-        help="If set, ignore the sex covariate in the data.",
-    )
-    p.add_argument(
-        "--ignore_handedness",
-        action="store_true",
-        help="If set, ignore the handedness covariate in the data.",
-    )
-    p.add_argument(
-        "--limit_age_range",
-        action="store_true",
-        help="If set, exclude reference site subjects with age outside the range of the moving "
-        + "site subject ages.",
-    )
-    p.add_argument(
-        "--no_empirical_bayes",
-        action="store_true",
-        help="If set, skip empirical Bayes estimator for alpha and sigma estimation.",
-    )
-    p.add_argument(
-        "--robust",
-        action="store_true",
-        help="If set, use combat robust. This tries "
-        + "identifying/rejecting non-HC subjects.",
-    )
-    p.add_argument(
-        "--regul_ref",
-        type=float,
-        default=0,
-        help="Regularization parameter for the reference site data. [%(default)s]",
-    )
-    p.add_argument(
-        "--regul_mov",
-        type=float,
-        help="Regularization parameter for the moving site data. Set to '-1' for automatic tuning "
-        + "[default=0 for pairwise; -1 for clinic]",
-    )
-    p.add_argument(
-        "--degree",
-        type=int,
-        help="Degree of the polynomial fit in Combat. Default is linear "
-        + "[default=1 for pairwise; 2 for clinic].",
-    )
-    p.add_argument(
-        "--nu",
-        type=float,
-        default=5,
-        help="Combat Clinic hyperparameter for the standard deviation estimation of the moving "
-        + "site data. It must be >=0.  [%(default)s]",
-    )
-    p.add_argument(
-        "--tau",
-        type=float,
-        default=2,
-        help="Combat Clinic hyperparameter for the covariate fit of the moving site data. "
-        "It must be >= 1. [%(default)s]",
-    )
-    p.add_argument(
-        "--ignore_bundles",
-        nargs="+",
-        help="List of bundle to ignore.",
-        default=['left_ventricle', 'right_ventricle']
-    )
-
+    p.add_argument("ref_data",
+                   help="Path to the reference site data.")
+    p.add_argument("mov_data",
+                   help="Path to the moving site data.")
+    p.add_argument("--out_dir",
+                   default="./",
+                   help="Output directory.[%(default)s]")
+    p.add_argument("-o", "--output_model_filename",
+                   default="",
+                   help="Output CSV model filename."
+                        "['ref_site-moving-site.model.metric_name.csv']")
+    p.add_argument("-m", "--method",
+                   default="clinic",
+                   choices=["pairwise", "clinic"],
+                   help="Harmonization method.")
+    p.add_argument("--ignore_sex",
+                   action="store_true",
+                   help="If set, ignore the sex covariate in the data.")
+    p.add_argument("--ignore_handedness",
+                   action="store_true",
+                   help="If set, ignore the handedness covariate in the data.")
+    p.add_argument("--limit_age_range",
+                   action="store_true",
+                   help="If set, exclude reference site subjects with age"
+                        " outside the range of the moving site subject ages.")
+    p.add_argument("--no_empirical_bayes",
+                   action="store_true",
+                   help="If set, skip empirical Bayes estimator"
+                        " for alpha and sigma estimation.")
+    p.add_argument("--robust",
+                   action="store_true",
+                   help="If set, use combat robust. This tries "
+                        "identifying/rejecting non-HC subjects.")
+    p.add_argument("--regul_ref",
+                   type=float,
+                   default=0,
+                   help="Regularization parameter for"
+                        " the reference site data. [%(default)s]")
+    p.add_argument("--regul_mov",
+                   type=float,
+                   help="Regularization parameter for"
+                        " the moving site data. "
+                        "Set to '-1' for automatic tuning "
+                        "[default=0 for pairwise; -1 for clinic]")
+    p.add_argument("--degree",
+                   type=int,
+                   help="Degree of the polynomial fit in Combat."
+                        " Default is linear [default=1 for pairwise;"
+                        " 2 for clinic].")
+    p.add_argument("--nu",
+                   type=float,
+                   default=5,
+                   help="Combat Clinic hyperparameter for"
+                        " the standard deviation estimation of the moving "
+                        "site data. It must be >=0.  [%(default)s]")
+    p.add_argument("--tau",
+                   type=float,
+                   default=2,
+                   help="Combat Clinic hyperparameter for "
+                        "the covariate fit of the moving site data. "
+                        "It must be >= 1. [%(default)s]")
+    p.add_argument("--ignore_bundles",
+                   nargs="+",
+                   default=['left_ventricle', 'right_ventricle'],
+                   help="List of bundle to ignore.")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -190,7 +165,8 @@ def main():
             + ".model.csv",
         )
     else:
-        output_filename = os.path.join(args.out_dir, args.output_model_filename)
+        output_filename = os.path.join(args.out_dir,
+                                       args.output_model_filename)
     os.makedirs(args.out_dir, exist_ok=True)
     assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
 

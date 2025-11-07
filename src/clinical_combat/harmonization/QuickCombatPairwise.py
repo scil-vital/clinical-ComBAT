@@ -25,10 +25,10 @@ class QuickCombatPairwise(QuickCombat):
             beta=None,
             sigma=None,
             gamma_ref=None,
-            delta_ref=None,        
+            delta_ref=None,
             gamma_mov=None,
             delta_mov=None,
-        ):
+            ):
         """
         regul: float
             Regularization parameter.
@@ -41,7 +41,7 @@ class QuickCombatPairwise(QuickCombat):
         gamma_ref: Array
             Additive bias of the reference site.
         delta_ref: Array
-            Multiplicative bias of the reference site.        
+            Multiplicative bias of the reference site.
         gamma_mov: Array
             Additive bias of the moving site.
         delta_mov: Array
@@ -66,7 +66,6 @@ class QuickCombatPairwise(QuickCombat):
         self.gamma_mov = gamma_mov
         self.delta_mov = delta_mov
 
-
     def initialize_from_model_params(self, model_filename):
         """
         Initialize the object from a model file
@@ -78,17 +77,17 @@ class QuickCombatPairwise(QuickCombat):
         super().initialize_from_model_params(model_filename)
         nb = len(self.get_beta_labels())
 
-        params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
+        params = np.loadtxt(model_filename, delimiter=",",
+                            dtype=str, skiprows=1)
         self.regul = self.model_params["regul"]
         self.bundle_names = params[0, 1:]
         self.alpha = params[1, 1:].astype("float64").transpose()
-        self.beta = params[2 : 2 + nb, 1:].astype("float64").transpose()
+        self.beta = params[2: 2 + nb, 1:].astype("float64").transpose()
         self.sigma = params[2 + nb, 1:].astype("float64").transpose()
         self.gamma_ref = params[3 + nb, 1:].astype("float64").transpose()
         self.delta_ref = params[4 + nb, 1:].astype("float64").transpose()
         self.gamma_mov = params[5 + nb, 1:].astype("float64").transpose()
         self.delta_mov = params[6 + nb, 1:].astype("float64").transpose()
-
 
     def save_model(self, model_filename):
         """
@@ -105,13 +104,12 @@ class QuickCombatPairwise(QuickCombat):
                 self.beta,
                 self.sigma.reshape(-1, 1),
                 self.gamma_ref.reshape(-1, 1),
-                self.delta_ref.reshape(-1, 1),                
+                self.delta_ref.reshape(-1, 1),
                 self.gamma_mov.reshape(-1, 1),
                 self.delta_mov.reshape(-1, 1),
             ]
         ).transpose()
 
-        beta_labels = self.get_beta_labels()
         param_labels = ["bundle_names", "intercept"]
         param_labels.extend(self.get_beta_labels())
         param_labels.append("sigma")
@@ -123,8 +121,8 @@ class QuickCombatPairwise(QuickCombat):
 
         params = np.hstack([param_labels, params])
         header = str(self.model_params)
-        np.savetxt(model_filename, params, delimiter=",", fmt="%s", header=header)
-
+        np.savetxt(model_filename, params, delimiter=",",
+                   fmt="%s", header=header)
 
     def set_model_fit_params(self, ref_data, mov_data):
         """
@@ -140,11 +138,11 @@ class QuickCombatPairwise(QuickCombat):
         self.model_params["regul"] = self.regul
         self.model_params["name"] = "pairwise"
 
-
     def standardize_moving_data(self, X, Y):
         """
-        Standardize the data (Y). Combat standardize the data with 
-        the jointly estimated covariate effect, intercept and standard deviation. 
+        Standardize the data (Y). Combat standardize the data with
+        the jointly estimated covariate effect,
+        intercept and standard deviation.
 
         .. math::
         S_Y = (Y - X^T B - alpha) / sigma
@@ -162,11 +160,10 @@ class QuickCombatPairwise(QuickCombat):
             )
         return s_y
 
-
     def fit(self, ref_data, mov_data):
         """
-        Combat Pairwise fit. The moving site beta and alpha are fitted using all 
-        data.
+        Combat Pairwise fit. The moving site beta and alpha
+        are fitted using all data.
 
         ref_data: DataFrame
             Data of the reference site.
@@ -174,17 +171,18 @@ class QuickCombatPairwise(QuickCombat):
             Data of the moving site.
         """
         ref_data, mov_data = self.prepare_data(ref_data, mov_data)
- 
+
         # fit intercept and covariates of the moving site using all data
         all_data = pd.concat([ref_data, mov_data])
 
         design_mov, y_mov = self.get_design_matrices(mov_data)
         design_ref, y_ref = self.get_design_matrices(ref_data)
         design_all, y_all = self.get_design_matrices(all_data)
-        self.alpha, self.beta = QuickCombat.get_alpha_beta(design_all, y_all, 
+        self.alpha, self.beta = QuickCombat.get_alpha_beta(design_all, y_all,
                                                            regul=self.regul)
-        self.sigma = QuickCombat.get_sigma(design_all, y_all, self.alpha, self.beta)
-        
+        self.sigma = QuickCombat.get_sigma(design_all, y_all,
+                                           self.alpha, self.beta)
+
         z = self.standardize_moving_data(design_mov, y_mov)
         self.gamma_mov = np.array([np.mean(x) for x in z])
         self.delta_mov = np.array([np.std(x, ddof=1) for x in z])
@@ -196,15 +194,14 @@ class QuickCombatPairwise(QuickCombat):
                 self.delta_mov**2,
             )
         self.gamma_mov *= self.sigma
-        
+
         z_ref = self.standardize_moving_data(design_ref, y_ref)
         self.gamma_ref = np.array([np.mean(x) for x in z_ref])
         self.delta_ref = np.array([np.std(x, ddof=1) for x in z_ref])
         self.gamma_ref *= self.sigma
-        
+
         self.set_model_fit_params(ref_data, mov_data)
         return
-
 
     def apply(self, data):
         """
@@ -238,15 +235,13 @@ class QuickCombatPairwise(QuickCombat):
             )
 
             harm_y.append(
-                (self.delta_ref[i] / self.delta_mov[i]) 
+                (self.delta_ref[i] / self.delta_mov[i])
                 * (Y[i] - self.alpha[i] - covariate_effect - self.gamma_mov[i])
                 + self.gamma_ref[i]
-                + self.alpha[i]              
+                + self.alpha[i]
                 + covariate_effect
             )
-            
         return harm_y
-
 
     def predict(self, ages, bundle, moving_site=True):
         """

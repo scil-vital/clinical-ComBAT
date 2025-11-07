@@ -12,7 +12,8 @@ def get_cohensd(data, group1, group2):
         group2 (list): Subject keys for the second group.
 
     Returns:
-        cohens_d (list of np.float32): The Cohen's d statistic for metric `metric_key` 
+        cohens_d (list of np.float32): The Cohen's d statistic
+                                       for metric `metric_key`
                                        between subjects of group1 and group2.
 
     References :

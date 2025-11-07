@@ -2,23 +2,26 @@
 # -*- coding: utf-8 -*-
 """
 Visualizes the harmonization model between a reference site and a moving site.
-The plot is a scatterplot, with each color representing a site (reference = black; moving = blue,
-default colors) and its corresponding model (same colors).
+The plot is a scatterplot, with each color representing a
+ite (reference = black; moving = blue, default colors)
+and its corresponding model (same colors).
 
 # Default usage
-combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz
---models harmonization.model.csv
+combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz \
+                       --models harmonization.model.csv
 
 --------------------------------
 
 Usage examples:
 # Set fixed color for reference and moving sites
-combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz
---models harmonization.model.csv --fixed_color r b
+combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz \
+                       --models harmonization.model.csv \
+                       --fixed_color r b
 
 # Show only models
-combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz
---models harmonization.model.csv --only_models --no_background
+combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz \
+                       --models harmonization.model.csv \
+                       --only_models --no_background
 """
 
 import argparse
@@ -30,7 +33,8 @@ import pandas as pd
 
 from clinical_combat.harmonization import from_model_filename
 from clinical_combat.utils.combatio import load_sites_data
-from clinical_combat.utils.scilpy_utils import add_overwrite_arg, add_verbose_arg
+from clinical_combat.utils.scilpy_utils import (add_overwrite_arg,
+                                                add_verbose_arg)
 from clinical_combat.visualization.plots import (
     add_models_to_plot,
     add_scatterplot_to_curve,
@@ -38,7 +42,9 @@ from clinical_combat.visualization.plots import (
     scale_color,
     update_global_figure_style_and_save,
 )
-from clinical_combat.visualization.viz import custom_palette, generate_query, line_style
+from clinical_combat.visualization.viz import (custom_palette,
+                                               generate_query,
+                                               line_style)
 
 
 def _build_arg_parser():
@@ -46,85 +52,69 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
 
-    p.add_argument("in_reference", help="Path to CSV for target site (raw data).")
-    p.add_argument("in_moving", help="Path to CSV file for moving site.")
-    p.add_argument("in_model", help="Path to CSV for harmonization parameter.")
-
-    p.add_argument(
-        "--bundles",
-        nargs="+",
-        help="List of bundle to use for figures. To plot all bundles use "
-        "--bundles all. ['mni_IIT_mask_skeletonFA'].",
-    )
+    p.add_argument("in_reference",
+                   help="Path to CSV for target site (raw data).")
+    p.add_argument("in_moving",
+                   help="Path to CSV file for moving site.")
+    p.add_argument("in_model",
+                   help="Path to CSV for harmonization parameter.")
+    p.add_argument("--bundles",
+                   nargs="+",
+                   help="List of bundle to use for figures. "
+                        "To plot all bundles use --bundles all. "
+                        "['mni_IIT_mask_skeletonFA'].")
 
     out = p.add_argument_group(title="Options for output figure.")
-    out.add_argument("--out_dir", default="./", help="Output directory.[%(default)s]")
-    out.add_argument(
-        "--outname",
-        help="Filename to save figure. "
-        "['movSite'-'refSite'_'modelName'_model_'metric'_'bundle'.png]",
-    )
-    out.add_argument(
-        "--add_suffix", help="Add suffix to figure title and output PNG filename."
-    )
+    out.add_argument("--out_dir",
+                     default="./",
+                     help="Output directory.[%(default)s]")
+    out.add_argument("--outname",
+                     help="Filename to save figure. "
+                          "['movSite'-'refSite'_'modelName'_model_'metric'_'bundle'.png]")
+    out.add_argument("--add_suffix",
+                     help="Add suffix to figure title and "
+                          " output PNG filename.")
 
     viz = p.add_argument_group(title="Display options")
-    viz.add_argument(
-        "--hide_disease",
-        action="store_true",
-        help="Deletes data corresponding to diseases.",
-    )
-    viz.add_argument(
-        "--display_marginal_hist",
-        action="store_true",
-        help="Add marginal histograms to plot.",
-    )
+    viz.add_argument("--hide_disease",
+                     action="store_true",
+                     help="Deletes data corresponding to diseases.")
+    viz.add_argument("--display_marginal_hist",
+                     action="store_true",
+                     help="Add marginal histograms to plot.")
 
     plot = p.add_argument_group(title="Options for plot visualization")
-    plot.add_argument(
-        "--no_background",
-        action="store_true",
-        help="Save figure with empty background.",
-    )
-    plot.add_argument(
-        "--fixed_ylim",
-        nargs=2,
-        metavar=("MIN", "MAX"),
-        help="Fixed value for y-axis limit.",
-    )
-    plot.add_argument(
-        "--xlim",
-        nargs=2,
-        default=(20, 90),
-        metavar=("MIN", "MAX"),
-        help="X-axis limit, usually range of ages to use min, max [%(default)s].",
-    )
-    plot.add_argument(
-        "--fixed_color",
-        nargs=2,
-        metavar=("REFERENCE", "MOVING"),
-        help="Use to set color for each site.",
-    )
+    plot.add_argument("--no_background",
+                      action="store_true",
+                      help="Save figure with empty background.")
+    plot.add_argument("--fixed_ylim",
+                      nargs=2,
+                      metavar=("MIN", "MAX"),
+                      help="Fixed value for y-axis limit.")
+    plot.add_argument("--xlim",
+                      nargs=2,
+                      default=(20, 90),
+                      metavar=("MIN", "MAX"),
+                      help="X-axis limit, usually range of ages "
+                           " to use min, max [%(default)s].")
+    plot.add_argument("--fixed_color",
+                      nargs=2,
+                      metavar=("REFERENCE", "MOVING"),
+                      help="Use to set color for each site.")
 
     line = p.add_argument_group(title="Options for regression line plot")
-    line.add_argument(
-        "--only_models",
-        action="store_true",
-        help="Show only regression line on the plot.",
-    )
-    line.add_argument(
-        "--line_width",
-        type=float,
-        default=2.5,
-        help="Width of regression lines from models.",
-    )
-    line.add_argument(
-        "--lightness",
-        type=float,
-        default=1,
-        help="Use to scale the color; <1 to darker and >1 to lighter.",
-    )
-
+    line.add_argument("--only_models",
+                      action="store_true",
+                      help="Show only regression line on the plot.")
+    line.add_argument("--line_width",
+                      type=float,
+                      default=2.5,
+                      help="Width of regression lines from models.")
+    line.add_argument("--lightness",
+                      type=float,
+                      default=1,
+                      help="Use to scale the color; "
+                           " <1 to darker and >1 to lighter.")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -138,9 +128,8 @@ def main():
 
     in_files = [args.in_reference, args.in_moving]
 
-    df_target, df_moving = load_sites_data([args.in_reference]), load_sites_data(
-        [args.in_moving]
-    )
+    df_target = load_sites_data([args.in_reference])
+    df_moving = load_sites_data([args.in_moving])
     df = pd.concat([df_target, df_moving]).reset_index(drop=True)
 
     df = load_sites_data(in_files)
@@ -153,7 +142,8 @@ def main():
     if "HC" in all_disease:
         all_disease.remove("HC")
 
-    all_bundles = np.intersect1d(df_target.bundle.unique(), df_moving.bundle.unique())
+    all_bundles = np.intersect1d(df_target.bundle.unique(),
+                                 df_moving.bundle.unique())
     if args.bundles is None:
         args.bundles = ["mni_IIT_mask_skeletonFA"]
     elif args.bundles == ["all"]:
@@ -164,7 +154,8 @@ def main():
             logging.warning("Bundle %s not founded in the data.", b)
     if len(args.bundles) == 0:
         args.bundles = all_bundles[0:1]
-        logging.warning("No valid input bundle. Selecting bundle %s", args.bundles)
+        logging.warning("No valid input bundle. "
+                        "Selecting bundle %s", args.bundles)
 
     # Set colors for reference and moving sites
     curr_palette = custom_palette[:2]
@@ -273,7 +264,8 @@ def main():
 
             if not args.hide_disease:
                 # Add point corresponding to disease data
-                df_disease = df.query(generate_query(metric, bundle, all_disease))
+                df_disease = df.query(generate_query(metric, bundle,
+                                                     all_disease))
                 ax = add_scatterplot_to_curve(
                     ax,
                     df_disease,

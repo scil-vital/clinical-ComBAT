@@ -206,10 +206,10 @@ def generate_query(
         [
             (
                 f'{col} == "{row}"'
-                if type(row) == str
+                if type(row) is str
                 else (
                     f"{col} == {row}"
-                    if type(row) == int or float
+                    if type(row) is int or float
                     else f"" if row is None else f"{col} in {row}"
                 )
             )

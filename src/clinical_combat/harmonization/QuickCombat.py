@@ -3,7 +3,6 @@ import logging
 import sys
 
 import numpy as np
-from matplotlib.pyplot import *
 
 from clinical_combat.harmonization.QuickHarmonizationMethod import (
     QuickHarmonizationMethod,
@@ -29,7 +28,8 @@ class QuickCombat(QuickHarmonizationMethod):
         use_empirical_bayes: bool
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
-            Remove reference data with age outside the range of the moving site.
+            Remove reference data with age outside the range
+            of the moving site.
         degree: int
             Polynomial degree of the age fit.
         """
@@ -46,13 +46,11 @@ class QuickCombat(QuickHarmonizationMethod):
         if self.degree < 0:
             raise AssertionError("Degree must be greater than 1.")
 
-
     def standardize_moving_data(self, X, Y):
         """
         Abstract function.
         """
         pass
-
 
     def prepare_data(self, ref_data, mov_data):
         """
@@ -98,7 +96,8 @@ class QuickCombat(QuickHarmonizationMethod):
         for b in mov_data.bundle.unique():
             if b not in self.bundle_names:
                 logging.info(
-                    "Bundle %s was not found in the reference site and will be ignored."
+                    "Bundle %s was not found in the reference site "
+                    "and will be ignored."
                     % b
                 )
         return ref_data, mov_data
@@ -129,7 +128,8 @@ class QuickCombat(QuickHarmonizationMethod):
         dists = []
         for bundle in self.bundle_names:
             dists.append(
-                self.get_bundle_bhattacharyya_distance(ref_data, mov_data, bundle)
+                self.get_bundle_bhattacharyya_distance(ref_data, mov_data,
+                                                       bundle)
             )
         return dists
 
@@ -203,12 +203,9 @@ class QuickCombat(QuickHarmonizationMethod):
         """
         super().initialize_from_model_params(model_filename)
 
-        params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
-
         self.use_empirical_bayes = self.model_params["use_empirical_bayes"]
         self.limit_age_range = self.model_params["limit_age_range"]
         self.degree = self.model_params["degree"]
-
 
     def set_model_fit_params(self, ref_data, mov_data):
         """
@@ -227,7 +224,6 @@ class QuickCombat(QuickHarmonizationMethod):
         self.model_params["max_age"] = np.max(mov_data["age"])
         self.model_params["nbr_beta_params"] = len(self.get_beta_labels())
         self.model_params["degree"] = self.degree
-        
 
     def get_beta_labels(self):
         """
@@ -306,7 +302,8 @@ class QuickCombat(QuickHarmonizationMethod):
     @staticmethod
     def get_alpha_beta(X, Y, regul=0, reference_Bs=None):
         """
-        Fit the regression parameters of the covariates. This may include Age, Sex and Handedness.
+        Fit the regression parameters of the covariates.
+        This may include Age, Sex and Handedness.
         The age may be a linear or quadratic fit. See `get_design_matrices(.)`.
         Subjects with nans are removed from the estimation.
 
@@ -343,7 +340,8 @@ class QuickCombat(QuickHarmonizationMethod):
             else:
                 ref_w = np.ones(mod_transpose_mod.shape[0]) * sys.float_info.epsilon
 
-            # The amplitude of each term should be proportional of the reference weights.
+            # The amplitude of each term should be
+            # proportional of the reference weights.
             regul_mat = (
                 regul
                 * np.abs(ref_w[0] / ref_w)
@@ -354,7 +352,7 @@ class QuickCombat(QuickHarmonizationMethod):
 
             mat = mod_transpose_mod + regul_mat
             vec = np.dot(regul_mat, ref_w) + np.dot(mod.T, yy)
-            
+
             B = np.linalg.solve(mat, vec)
             Bs.append(B)
         Bs = np.array(Bs)
@@ -363,7 +361,8 @@ class QuickCombat(QuickHarmonizationMethod):
     @staticmethod
     def get_sigma(X, Y, alpha, beta):
         """
-        Calculate the standard deviation of the data after removing the covariate effect.
+        Calculate the standard deviation of the data
+        after removing the covariate effect.
 
         X: array
             The design matrix of the covariates.
@@ -416,7 +415,8 @@ class QuickCombat(QuickHarmonizationMethod):
     @staticmethod
     def estimate_b_prior(delta_hat):
         """
-        Estimate the `b` prior. `b` is the scale parameter of the inverse gamma.
+        Estimate the `b` prior. `b` is the scale parameter
+        of the inverse gamma.
         `delta` is the estimate of the multiplicative bias.
 
         detla_hat: array
@@ -445,7 +445,8 @@ class QuickCombat(QuickHarmonizationMethod):
         gamma_hat: array
             Standardized estimate of the additive bias. No empirical bayes.
         delta_hat:
-            Standardized estimate of the multiplicative bias. No empirical bayes.
+            Standardized estimate of the multiplicative bias.
+            No empirical bayes.
         conv: float
             Convergence, after this the loop will stop
 
@@ -455,15 +456,16 @@ class QuickCombat(QuickHarmonizationMethod):
         g_new: array
             Standardized estimate of the additive bias, using empirical bayes
         d_new: array
-            Standardized estimate of the multiplicative bias, using empirical bayes
+            Standardized estimate of the multiplicative bias,
+            using empirical bayes
 
         """
         # g_bar: mean of the standardized estimate of the additive bias
         # without empirical bayes
         gamma_bar = np.mean(gamma_hat)
 
-        # t2: tau ** 2, variance of the standardized estimate of the additive bias
-        # without empirical bayes
+        # t2: tau ** 2, variance of the standardized estimate
+        # of the additive bias without empirical bayes
         t2 = np.var(gamma_hat, ddof=1)
 
         # a: shape of the multplicative bias (shape in an inver-gamma)
@@ -473,7 +475,7 @@ class QuickCombat(QuickHarmonizationMethod):
 
         # The number of subject per bundle may vary. Here we take the mean.
         n = np.array([len(d) for d in sdat])
-  
+
         g_old = gamma_hat.copy()
         d_old = delta_hat.copy()
 
@@ -496,5 +498,5 @@ class QuickCombat(QuickHarmonizationMethod):
             g_old = g_new.copy()
             d_old = d_new.copy()
             count = count + 1
-        
+
         return g_new, d_new**0.5

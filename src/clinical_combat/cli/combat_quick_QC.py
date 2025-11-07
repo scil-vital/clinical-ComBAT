@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script to compute the quality control of the transfer function from a moving site to a
-reference site using Bhattacharyya distance.
+Script to compute the quality control of the transfer function from
+a moving site to a reference site using Bhattacharyya distance.
 
 # Usage :
-# Use the pairwise method to harmonize the moving site data to the reference site data 
-# (linear)
+# Use the pairwise method to harmonize the moving site data to
+# the reference site data (linear)
 combat_quick_QC reference_site.raw.csv.gz moving_site.raw.csv.gz \
-                  reference_site-moving_site.model.metric_name.csv
-
+                reference_site-moving_site.model.metric_name.csv
 """
 
 import argparse
@@ -31,43 +30,30 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    p.add_argument(
-        "ref_data",
-        help="Path to the reference data.",
-    )
-    p.add_argument(
-        "mov_data",
-        help="Path to the moving data.",
-    )
+    p.add_argument("ref_data",
+                   help="Path to the reference data.")
+    p.add_argument("mov_data",
+                   help="Path to the moving data.")
     p.add_argument("model", help="Combat CSV model parameters.")
-    p.add_argument(
-        "--out_dir",
-        help="Output directory.[%(default)s]",
-        default="./",
-    )
-    p.add_argument(
-        "--degree_qc",
-        type=int,
-        help="Degree for model fit. By default it uses the input model degree.",
-        default=0,
-    )
-    p.add_argument(
-        "--print_only",
-        action="store_true",
-        help="If set, do not save the distance to a text file.",
-    )
-    p.add_argument(
-        "-o",
-        "--output_results_filename",
-        help="Output txt results filename. ['mov_data.bhattacharrya.txt']",
-        default="",
-    )
-    p.add_argument(
-    "--ignore_bundles",
-    nargs="+",
-    help="List of bundle to ignore.",
-    default=['left_ventricle', 'right_ventricle']
-    )
+    p.add_argument("--out_dir",
+                   default="./",
+                   help="Output directory.[%(default)s]")
+    p.add_argument("--degree_qc",
+                   type=int,
+                   default=0,
+                   help="Degree for model fit. "
+                        "By default it uses the input model degree.")
+    p.add_argument("--print_only",
+                   action="store_true",
+                   help="If set, do not save the distance to a text file.")
+    p.add_argument("-o", "--output_results_filename",
+                   default="",
+                   help="Output txt results filename. "
+                        "['mov_data.bhattacharrya.txt']")
+    p.add_argument("--ignore_bundles",
+                   nargs="+",
+                   default=['left_ventricle', 'right_ventricle'],
+                   help="List of bundle to ignore.")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -79,13 +65,12 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    ref_data = pd.read_csv(args.ref_data).query("disease == 'HC'") 
+    ref_data = pd.read_csv(args.ref_data).query("disease == 'HC'")
     ref_data = ref_data[~ref_data['bundle'].isin(args.ignore_bundles)]
     mov_data = pd.read_csv(args.mov_data).query("disease == 'HC'")
     mov_data = mov_data[~mov_data['bundle'].isin(args.ignore_bundles)]
 
     logging.info("Bundles: %s will be ignored.", args.ignore_bundles)
-
 
     model = from_model_filename(args.model)
 
@@ -107,7 +92,7 @@ def main():
     QC.fit(ref_data, ref_data)
 
     metric_name = QC.model_params["metric_name"]
-    ref_site = QC.model_params["ref_site"]    
+    ref_site = QC.model_params["ref_site"]
 
     # Check if moving site is a string
     if mov_data.site.dtype != "str":
@@ -129,10 +114,13 @@ def main():
     if args.output_results_filename == "":
         output_filename = os.path.join(
             args.out_dir,
-            os.path.basename(args.mov_data).split(".csv")[0] + ".bhattacharrya.txt",
-        )
+            os.path.basename(args.mov_data).split(".csv")[0] +
+            ".bhattacharrya.txt")
     else:
-        output_filename = os.path.join(args.out_dir, args.output_results_filename)
+        output_filename = os.path.join(args.out_dir,
+                                       args.output_results_filename)
+
+    os.makedirs(args.out_dir, exist_ok=True)
 
     print(
         "      Mean Bhattacharrya distance: %f (min: %f, max: %f)"
@@ -140,7 +128,8 @@ def main():
     )
 
     if not args.print_only:
-        assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
+        assert_outputs_exist(parser, args, output_filename,
+                             check_dir_exists=True)
         logging.info("Saving file: %s", output_filename)
         header = "HC"
         for curr_bundle in QC.bundle_names:

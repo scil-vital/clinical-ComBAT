@@ -28,23 +28,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    p.add_argument(
-        "mov_data",
-        help="Path to the moving data.",
-    )
-    p.add_argument("model", help="Combat CSV model parameters.")
-    p.add_argument(
-        "--out_dir",
-        help="Output directory.[%(default)s]",
-        default="./",
-    )
-    p.add_argument(
-        "-o",
-        "--output_results_filename",
-        help="Output CSV of the harmonized data filename."
-        + "['moving-site.metric_name.model.res.csv']",
-        default="",
-    )
+    p.add_argument("mov_data",
+                   help="Path to the moving data.")
+    p.add_argument("model",
+                   help="Combat CSV model parameters.")
+    p.add_argument("--out_dir",
+                   default="./",
+                   help="Output directory.[%(default)s]")
+    p.add_argument("-o", "--output_results_filename",
+                   default="",
+                   help="Output CSV of the harmonized data filename."
+                        "['moving-site.metric_name.model.res.csv']")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -86,7 +80,8 @@ def main():
             + ".csv.gz",
         )
     else:
-        output_filename = os.path.join(args.out_dir, args.output_results_filename)
+        output_filename = os.path.join(args.out_dir,
+                                       args.output_results_filename)
     os.makedirs(args.out_dir, exist_ok=True)
     assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
 

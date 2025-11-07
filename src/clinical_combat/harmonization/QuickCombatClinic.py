@@ -54,7 +54,8 @@ class QuickCombatClinic(QuickCombat):
         use_empirical_bayes: bool
             Uses empirical Bayes estimator for alpha and sigma estimation.
         limit_age_range: bool
-            Remove reference data with age outside the range of the moving site.
+            Remove reference data with age outside
+            the range of the moving site.
         degree: int
             Polynomial degree of the age fit.
         regul_ref: float
@@ -62,7 +63,8 @@ class QuickCombatClinic(QuickCombat):
         regul_mov: float
             Regularization parameter for the moving site data.
         nu: float
-            Hyperparameter for the standard deviation estimation of the moving site data.
+            Hyperparameter for the standard deviation estimation of
+            the moving site data.
         tau: float
             Hyperparameter for the covariate fit of the moving site data.
 
@@ -98,7 +100,6 @@ class QuickCombatClinic(QuickCombat):
         self.gamma_mov = gamma_mov
         self.delta_mov = delta_mov
 
-
     def initialize_from_model_params(self, model_filename):
         """
         Initialize the object from a model file.
@@ -114,18 +115,18 @@ class QuickCombatClinic(QuickCombat):
         self.nu = self.model_params["nu"]
         self.tau = self.model_params["tau"]
 
-        params = np.loadtxt(model_filename, delimiter=",", dtype=str, skiprows=1)
+        params = np.loadtxt(model_filename, delimiter=",",
+                            dtype=str, skiprows=1)
         nb = len(self.get_beta_labels())
         self.bundle_names = params[0, 1:]
         self.alpha_ref = params[1, 1:].astype("float64").transpose()
-        self.beta_ref = params[2 : 2 + nb, 1:].astype("float64").transpose()
+        self.beta_ref = params[2:2 + nb, 1:].astype("float64").transpose()
         self.sigma_ref = params[2 + nb, 1:].astype("float64").transpose()
         self.alpha_mov = params[3 + nb, 1:].astype("float64").transpose()
-        self.beta_mov = params[4 + nb : 4 + nb + nb, 1:].astype("float64").transpose()
+        self.beta_mov = params[4 + nb:4 + nb + nb, 1:].astype("float64").transpose()
         self.sigma_mov = params[4 + nb + nb, 1:].astype("float64").transpose()
         self.gamma_mov = params[5 + nb + nb, 1:].astype("float64").transpose()
         self.delta_mov = params[6 + nb + nb, 1:].astype("float64").transpose()
-
 
     def set_model_fit_params(self, ref_data, mov_data):
         """
@@ -143,7 +144,6 @@ class QuickCombatClinic(QuickCombat):
         self.model_params["nu"] = self.nu
         self.model_params["tau"] = self.tau
         self.model_params["name"] = "clinic"
-
 
     def save_model(self, model_filename):
         """
@@ -172,8 +172,8 @@ class QuickCombatClinic(QuickCombat):
 
         for site in ["ref", "mov"]:
             param_labels.append(site + "_intercept")
-            for l in beta_labels:
-                param_labels.append(site + "_" + l)
+            for curr_label in beta_labels:
+                param_labels.append(site + "_" + curr_label)
             param_labels.append(site + "_std")
         param_labels.append("mov_gamma")
         param_labels.append("mov_delta")
@@ -182,14 +182,15 @@ class QuickCombatClinic(QuickCombat):
 
         params = np.hstack([param_labels, params])
         header = str(self.model_params)
-        np.savetxt(model_filename, params, delimiter=",", fmt="%s", header=header)
-
+        np.savetxt(model_filename, params, delimiter=",",
+                   fmt="%s", header=header)
 
     def standardize_moving_data(self, X, Y):
         """
-        Standardize the data (Y). Combat Clinic standardize the moving site data with
-        the moving site intercept. Because the data are harmonize to the reference site,
-        sigma is obtained from the reference site data.
+        Standardize the data (Y). Combat Clinic standardize
+        the moving site data with the moving site intercept.
+        Because the data are harmonize to
+        the reference site, sigma is obtained from the reference site data.
 
         .. math::
         S_Y = (Y - X^T B - alpha_{mov}) / sigma_{ref}
@@ -201,18 +202,19 @@ class QuickCombatClinic(QuickCombat):
         """
         s_y = []
         for i in range(len(X)):
-            covariate_effect = np.dot(X[i][1:, :].transpose(), self.beta_mov[i])
+            covariate_effect = np.dot(X[i][1:, :].transpose(),
+                                      self.beta_mov[i])
             s_y.append(
                 (Y[i] - self.alpha_mov[i] - covariate_effect) / (self.sigma_ref[i])
             )
         return s_y
 
-
     def fit(self, ref_data, mov_data):
         """
         Combat Clinic fit.
         The moving site beta and alpha are fitted using the moving site data.
-        The reference site alpha and beta is fitted using the reference site data.
+        The reference site alpha and beta is fitted using
+        the reference site data.
 
         ref_data: DataFrame
             Data of the reference site.
@@ -223,9 +225,11 @@ class QuickCombatClinic(QuickCombat):
         ref_data, mov_data = self.prepare_data(ref_data, mov_data)
 
         if self.regul_mov == -1:
-            self.regul_mov = self.regularization_parameter_tuning(ref_data, mov_data)
+            self.regul_mov = self.regularization_parameter_tuning(ref_data,
+                                                                  mov_data)
 
-        # fit intercept and covariates of the reference site using the reference site data
+        # fit intercept and covariates of the reference site
+        # using the reference site data
         design_ref, y_ref = self.get_design_matrices(ref_data)
         self.alpha_ref, self.beta_ref = QuickCombat.get_alpha_beta(
             design_ref, y_ref, self.regul_ref
@@ -253,15 +257,14 @@ class QuickCombatClinic(QuickCombat):
             new_delta = []
             for i in range(len(self.sigma_mov)):
                 N = len(y_mov[i])
-                # The target normalized std is 1 (self.nu * target_std = self.nu)
+                # The target normalized std is 1
+                # (self.nu * target_std = self.nu)
                 new = (self.delta_mov[i] * N + self.nu) / (N + self.nu)
                 new_delta.append(new)
             self.delta_mov = np.array(new_delta)
 
         self.set_model_fit_params(ref_data, mov_data)
-        #import pdb; pdb.set_trace()
         return
-
 
     def apply(self, data):
         """
@@ -302,9 +305,7 @@ class QuickCombatClinic(QuickCombat):
                 + self.alpha_ref[i]
                 + covariate_effect_ref
             )
-
         return harm_y
-
 
     def predict(self, ages, bundle, moving_site=True):
         """
@@ -348,7 +349,6 @@ class QuickCombatClinic(QuickCombat):
         y = np.dot(design.transpose(), B)
         return y
 
-
     def regularization_parameter_tuning(
         self, ref_data, mov_data, step=1.5, max_reg=1e10
     ):
@@ -366,7 +366,8 @@ class QuickCombatClinic(QuickCombat):
             if xx in ages:
                 mov_mask[i] = 1
 
-        # fit intercept and covariates of the reference site using the reference site data
+        # fit intercept and covariates of the reference site using
+        # the reference site data
         design_ref, y_ref = self.get_design_matrices(ref_data)
         self.alpha_ref, self.beta_ref = QuickCombat.get_alpha_beta(
             design_ref, y_ref, self.regul_ref
@@ -389,7 +390,8 @@ class QuickCombatClinic(QuickCombat):
                 mov_models.append(self.predict(x, b, moving_site=True))
 
             error = self.eval_fit(ref_models, mov_models, mov_mask)
-            logging.debug("Current reg: %d  Minimizing term: %d", current_reg, error)
+            logging.debug("Current reg: %d  Minimizing term: %d",
+                          current_reg, error)
             if error == 0:
                 # found the smallest working lambda
                 logging.info("Optimal reg term found: %d", current_reg)
@@ -400,7 +402,6 @@ class QuickCombatClinic(QuickCombat):
         # failed to find a working lambda
         logging.warning("No optimal reg term found, set reg to: %d", max_reg)
         return max_reg
-
 
     def eval_fit(self, ref_models, mov_models, mov_mask):
 
@@ -417,5 +418,3 @@ class QuickCombatClinic(QuickCombat):
             evals.append(v)
 
         return np.sum(evals)
-
-
