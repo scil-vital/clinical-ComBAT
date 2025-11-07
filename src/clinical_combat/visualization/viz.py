@@ -209,7 +209,7 @@ def generate_query(
                 if type(row) is str
                 else (
                     f"{col} == {row}"
-                    if type(row) is int or float
+                    if isinstance(row, (int, float))
                     else f"" if row is None else f"{col} in {row}"
                 )
             )
