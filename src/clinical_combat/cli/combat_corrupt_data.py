@@ -106,6 +106,7 @@ def main():
     if args.nbr_sub > 0:
         all_sids = list(all_data.sid.unique())
         random.shuffle(all_sids)
+        sids = all_sids[: args.nbr_sub]
         data = all_data.query("sid in @sids")
     else:
         data = all_data
