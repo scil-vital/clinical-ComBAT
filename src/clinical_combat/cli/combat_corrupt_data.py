@@ -69,7 +69,7 @@ def _build_arg_parser():
                    type=int,
                    default=-1,
                    help="Max number of subject to select."
-                        "By default, all subjets are used.")
+                        "By default, all subjects are used.")
     p.add_argument("--site_name",
                    type=str,
                    help="Change the site name. By default the site name "
