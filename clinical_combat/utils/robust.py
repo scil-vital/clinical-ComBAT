@@ -20,6 +20,13 @@ def remove_outliers(ref_data, mov_data, args):
     rwp = args.rwp
 
     # Initialize QC model
+    covbat_pve = getattr(args, "covbat_pve", 0.95)
+    covbat_max_components = getattr(args, "covbat_max_components", None)
+    gam_n_knots = getattr(args, "gam_n_knots", 7)
+    gmm_components = getattr(args, "gmm_components", 2)
+    gmm_tol = getattr(args, "gmm_tol", 1e-4)
+    gmm_max_iter = getattr(args, "gmm_max_iter", 200)
+
     QC = from_model_name(
         args.method.lower(),
         ignore_handedness_covariate=args.ignore_handedness,
@@ -31,6 +38,12 @@ def remove_outliers(ref_data, mov_data, args):
         regul_mov=args.regul_mov,
         nu=args.nu,
         tau=args.tau,
+        covbat_pve=covbat_pve,
+        covbat_max_components=covbat_max_components,
+        gam_n_knots=gam_n_knots,
+        gmm_components=gmm_components,
+        gmm_tol=gmm_tol,
+        gmm_max_iter=gmm_max_iter,
     )
     QC.fit(ref_data, mov_data, False)
     site = mov_data['site'].unique()[0]
@@ -559,6 +572,9 @@ ROBUST_METHODS = {
     "MAD": find_outliers_MAD,
     "MAD_VS": mad_vs,
     "MAD_STRICT": lambda data: find_outliers_MAD(data, threshold=2.0),
+    "SN": find_outliers_SN,
+    "QN": find_outliers_QN,
+    "LOF": find_outliers_LOF,
     "MMS": reject_outliers_until_mad_equals_mean,
     "VS": find_outliers_VS,
     "VS2": find_outliers_VS2,
@@ -578,18 +594,26 @@ ROBUST_METHODS = {
     "Z_SCORE_METRIC": find_outliers_ZSCORE_METRIC,
     "Z_SCORE_METRIC_STRICT": lambda data: find_outliers_ZSCORE_METRIC(data, seuil=2.0),
     "Z_SCORE_METRIC_VSTRICT": lambda data: find_outliers_ZSCORE_METRIC(data, seuil=1.0),
-    "MLP_AD_5": lambda data: flagged(data, method='MLP_AD_5'),
-    "MLP_AD_6": lambda data: flagged(data, method='MLP_AD_6'),
     "MLP_ALL_5": lambda data: flagged(data, method='MLP_ALL_5'),
     "MLP_ALL_6": lambda data: flagged(data, method='MLP_ALL_6'),
+    "MLP_ALL_9": lambda data: flagged(data, method='MLP_ALL_9'),
+    "MLP_ALL_95": lambda data: flagged(data, method='MLP_ALL_95'),
+    "MLP_ALL_99": lambda data: flagged(data, method='MLP_ALL_99'),
     "MLP2_ALL_5": lambda data: flagged(data, method='MLP2_ALL_5'),
     "MLP2_ALL_6": lambda data: flagged(data, method='MLP2_ALL_6'),
     "MLP2_ALL_9": lambda data: flagged(data, method='MLP2_ALL_9'),
-    "SN": find_outliers_SN,
-    "QN": find_outliers_QN,
-    "LOF": find_outliers_LOF,
-    "MLP2_ALL_5_MAD": mlp25_all_mad,
-    "MLP2_ALL_6_MAD": mlp26_all_mad,
+    "MLP2_ALL_95": lambda data: flagged(data, method='MLP2_ALL_95'),
+    "MLP2_ALL_99": lambda data: flagged(data, method='MLP2_ALL_99'),
+    "MLP3_ALL_5": lambda data: flagged(data, method='MLP3_ALL_5'),
+    "MLP3_ALL_6": lambda data: flagged(data, method='MLP3_ALL_6'),
+    "MLP3_ALL_9": lambda data: flagged(data, method='MLP3_ALL_9'),
+    "MLP3_ALL_95": lambda data: flagged(data, method='MLP3_ALL_95'),
+    "MLP3_ALL_99": lambda data: flagged(data, method='MLP3_ALL_99'),
+    "MLP4_ALL_5": lambda data: flagged(data, method='MLP4_ALL_5'),
+    "MLP4_ALL_6": lambda data: flagged(data, method='MLP4_ALL_6'),
+    "MLP4_ALL_9": lambda data: flagged(data, method='MLP4_ALL_9'),
+    "MLP4_ALL_95": lambda data: flagged(data, method='MLP4_ALL_95'),
+    "MLP4_ALL_99": lambda data: flagged(data, method='MLP4_ALL_99'),
 }
 from clinical_combat.harmonization.QuickCombat import QuickCombat
 

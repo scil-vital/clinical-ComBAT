@@ -26,9 +26,12 @@ def get_output_model_filename(mov_data_file, metric, harmonizartion_method, robu
         )
 
 def get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory):
+        site = get_site(mov_data_file)
+        if "test" in mov_data_file:
+            site += "_test"
         return os.path.join(
             directory,
-            get_site(mov_data_file)
+            site
             + "."
             + metric
             + "."

@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from clinical_combat.harmonization import from_model_name
-from clinical_combat.utils.robust import remove_outliers
+from clinical_combat.utils.robust import remove_outliers, ROBUST_METHODS
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -62,7 +62,7 @@ def _build_arg_parser():
         "-m",
         "--method",
         default="clinic",
-        choices=["classic", "clinic"],
+        choices=["classic", "clinic", "covbat", "gam", "gmm"],
         help="Harmonization method.",
     )
     p.add_argument(
@@ -126,43 +126,6 @@ def _build_arg_parser():
     p.add_argument(
         "--robust",
         default="No",
-        choices=["No", 
-                 "IQR",
-                "IQR_STRICT",
-                "MAD",
-                "MAD_STRICT",
-                "MAD_VS",
-                "MMS",
-                "VS",
-                "VS2",
-                "TOP5",
-                "TOP10",
-                "TOP20",
-                "TOP30",
-                "TOP40",
-                "TOP50",
-                "CHEAT",
-                "FLIP",
-                "Z_SCORE",
-                "Z_SCORE_IQR",
-                "Z_SCORE_MAD",
-                "Z_SCORE_BUNDLE",
-                "Z_SCORE_BUNDLE_STRICT",
-                "Z_SCORE_METRIC",
-                "Z_SCORE_METRIC_STRICT",
-                "Z_SCORE_METRIC_VSTRICT",
-                "MLP_AD_5",
-                "MLP_AD_6",
-                "MLP_ALL_5",
-                "MLP_ALL_6",
-                "MLP2_ALL_5",
-                "MLP2_ALL_6",
-                "MLP2_ALL_9",
-                "MLP2_ALL_5_MAD",
-                "MLP2_ALL_6_MAD",
-                "SN",
-                "QN",
-                "LOF"],
         help="If set, use combat robust. This tries "
         + "identifying/rejecting non-HC subjects.",
     )
@@ -176,6 +139,41 @@ def _build_arg_parser():
         nargs="+",
         help="List of bundle to ignore.",
         default=['left_ventricle', 'right_ventricle']
+    )
+    p.add_argument(
+        "--covbat_pve",
+        type=float,
+        default=0.95,
+        help="Minimum proportion of variance explained to retain in the CovBat PCA space. [%(default)s]",
+    )
+    p.add_argument(
+        "--covbat_max_components",
+        type=int,
+        help="Maximum number of principal components to harmonize with CovBat.",
+    )
+    p.add_argument(
+        "--gmm_components",
+        type=int,
+        default=2,
+        help="Number of Gaussian components for the ComBat-GMM mixture. [%(default)s]",
+    )
+    p.add_argument(
+        "--gmm_tol",
+        type=float,
+        default=1e-4,
+        help="Tolerance on log-likelihood improvement for the GMM EM algorithm. [%(default)s]",
+    )
+    p.add_argument(
+        "--gmm_max_iter",
+        type=int,
+        default=50,
+        help="Maximum number of EM iterations for ComBat-GMM. [%(default)s]",
+    )
+    p.add_argument(
+        "--gam_n_knots",
+        type=int,
+        default=7,
+        help="Number of knots used for the natural spline age term in ComBat-GAM. [%(default)s]",
     )
 
     add_verbose_arg(p)
@@ -191,13 +189,15 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if args.regul_mov is None:
-        if args.method in ["classic"]:
+        if args.method in ["classic", "covbat"]:
             args.regul_mov = 0
+        elif args.method == "gam":
+            args.regul_mov = 1e-3
         else:
             args.regul_mov = -1
 
     if args.degree is None:
-        if args.method in ["classic"]:
+        if args.method in ["classic", "covbat", "gam"]:
             args.degree = 1
         else:
             args.degree = 2
@@ -250,11 +250,18 @@ def main():
         regul_mov=args.regul_mov,
         nu=args.nu,
         tau=args.tau,
+        covbat_pve=args.covbat_pve,
+        covbat_max_components=args.covbat_max_components,
+        gam_n_knots=args.gam_n_knots,
+        gmm_components=args.gmm_components,
+        gmm_tol=args.gmm_tol,
+        gmm_max_iter=args.gmm_max_iter,
     )
+
     
     if args.robust != 'No':
         mov_data = remove_outliers(ref_data, mov_data, args)
-    cols = ['Z_SCORE', 'MLP_AD_5', 'MLP_AD_6', 'MLP_ALL_5', 'MLP_ALL_6', "MLP2_ALL_5"]
+    cols = list(ROBUST_METHODS.keys())
     cols_to_drop = [c for c in cols if c in mov_data.columns]
     mov_data =  mov_data.drop(columns=cols_to_drop)
     QC.robust = args.robust
