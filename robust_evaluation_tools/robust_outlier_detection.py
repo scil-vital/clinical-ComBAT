@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from sklearn.metrics import precision_score, recall_score, confusion_matrix, f1_score
 
-from clinical_combat.utils.robust import find_outliers_IQR, find_outliers_MAD, reject_outliers_until_mad_equals_mean, find_outliers_VS, find_outliers_VS2, remove_top_x_percent, cheat
+from clinical_combat.utils.robust import find_outliers_IQR, find_outliers_MAD, reject_outliers_until_mad_equals_mean, find_outliers_VS, find_outliers_VS2, cheat
 
 import matplotlib.pyplot as plt
 
@@ -30,9 +30,6 @@ def use_robust_method(data, robust_method, args = []):
         return find_outliers_VS(data)
     elif robust_method == 'VS2':
         return find_outliers_VS2(data)
-    elif robust_method in ['TOP5', 'TOP10', 'TOP20', 'TOP30', 'TOP40', 'TOP50']:
-        return remove_top_x_percent(data, x=int(robust_method
-        .replace('TOP', '')))
     elif robust_method == 'CHEAT':
         return cheat(data)
     else:
@@ -136,16 +133,13 @@ import pandas as pd
 import numpy as np
 
 def z_score_detection(df,
-                      mean_col: str = "mean_no_cov",
-                      threshold: float = 1.5) -> list[str]:
+                      mean_col: str = "mean_no_cov") -> pd.DataFrame:
     """
-    Repère les patients (sid) dont la moyenne du |z-score| dépasse `threshold`,
-    en s'assurant qu'au moins deux patients ne soient pas considérés comme outliers.
+    Calcule la moyenne du |z-score| par patient et retourne un DataFrame
+    `sid` / `prob_outlier`, où `prob_outlier` correspond au score continu.
 
-    Retour
-    ------
-    outlier_sids : list[str]
-        Liste des sid identifiés comme outliers.
+    Le seuil est toujours appliqué si l'on souhaite extraire une liste d'outliers,
+    mais cette logique est laissée au consommateur de la fonction.
     """
 
     # 1) Calcul des stats globales
@@ -162,23 +156,29 @@ def z_score_detection(df,
 
     # 4) Moyenne par patient
     mean_z = (df_z.groupby("sid", as_index=False)
-                    .agg(mean_abs_zscore=("abs_zscore", "mean")))
+                    .agg(prob_outlier=("abs_zscore", "mean")))
 
-    # 5) Identifier les outliers
-    outlier_mask = mean_z["mean_abs_zscore"] > threshold
-    outlier_sids = mean_z.loc[outlier_mask, "sid"].tolist()
-
-    # 6) S'assurer qu'il reste au moins deux patients
-    if len(mean_z) - len(outlier_sids) < 2:
-        # Trier les outliers par score décroissant (les plus extrêmes d'abord)
-        sorted_outliers = mean_z.loc[outlier_mask].sort_values("mean_abs_zscore", ascending=False)
-        n_to_remove = len(mean_z) - 2
-        outlier_sids = sorted_outliers.head(n_to_remove)["sid"].tolist()
-
-    return outlier_sids
+    return mean_z.astype({"prob_outlier": float})
 
 
 
 def flag_sid(df, sids, method):
-    df[method] = df['sid'].isin(sids).astype(int)
+    """
+    Annote `df` avec une colonne `method` à partir de `sids`.
+
+    - Si `sids` est un iterable de sid (ex.: list/tuple/set), on conserve le
+      comportement historique: 1 pour les sid présents, 0 sinon.
+    - Si `sids` est une DataFrame (`sid`, `prob_outlier`) ou Series/dict, on stocke la valeur.
+      on stocke directement cette valeur (float) pour tous les enregistrements du sid.
+    """
+    if isinstance(sids, pd.DataFrame):
+        if "sid" not in sids.columns:
+            raise ValueError("La DataFrame fournie à `flag_sid` doit contenir une colonne 'sid'.")
+        if "prob_outlier" not in sids.columns:
+            raise ValueError("La DataFrame fournie doit contenir une colonne 'prob_outlier'.")
+        value_col = "prob_outlier"
+        values = sids.set_index("sid")[value_col].astype(float)
+        df[method] = df["sid"].map(values).fillna(0.0)
+    else:
+        df[method] = df['sid'].isin(sids).astype(int)
     return df

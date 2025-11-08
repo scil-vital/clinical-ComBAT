@@ -86,6 +86,7 @@ from clinical_combat.visualization.viz import (
     compute_reference_windows_and_percentiles_by_windows,
     compute_site_curve,
     custom_palette,
+    disease_palette,
     generate_query,
     get_valid_age_windows,
     line_style,
@@ -123,7 +124,7 @@ def _build_arg_parser():
     wdw.add_argument(
         "--window_size",
         type=int,
-        default=20,
+        default=30,
         help="Window size in years. [%(default)s].",
     )
     wdw.add_argument(
@@ -264,7 +265,7 @@ def main():
     elif args.line_style:
         moving_linestyle = args.line_style
     else:
-        moving_palette = custom_palette[1]
+        moving_palette = custom_palette[8]
         moving_linestyle = line_style[1]
 
     # Load CSV files corresponding to reference site (raw) and moving site (raw + harmonized)
@@ -370,7 +371,7 @@ def main():
             ymax = ymax + (
                 df_ref_bundle["mean"].max() * (0.05 + args.increase_ylim / 100)
             )
-
+        ymin, ymax = float(0.2), float(0.4)
         # Generate figure for each harmonization type
         for harmonization, model in product(
             np.unique(df.harmonization), np.unique(df.model)
@@ -639,7 +640,7 @@ def main():
                     alpha=0.8,
                     hue_order=args.diseases,
                     legend="auto",
-                    palette=custom_palette[::-1][: len(args.diseases)],
+                    palette=disease_palette[: len(args.diseases)],
                 )
 
             # Save figure

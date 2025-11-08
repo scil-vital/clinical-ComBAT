@@ -125,14 +125,20 @@ def _build_arg_parser():
     )
     p.add_argument(
         "--robust",
-        default="No",
+        default="MLP4_ALL_5",
         help="If set, use combat robust. This tries "
         + "identifying/rejecting non-HC subjects.",
     )
     p.add_argument(
         "--rwp",
         action="store_true",
-        help="Will remove whole patient if is outlierin one bundle",
+        help="Will remove wh" \
+        "ole patient if is outlierin one bundle",
+    )
+    p.add_argument(
+        "--robust-threshold",
+        type=float,
+        help="Override the default threshold used by the selected robust method.",
     )
     p.add_argument(
         "--ignore_bundles",
@@ -258,8 +264,9 @@ def main():
         gmm_max_iter=args.gmm_max_iter,
     )
 
-    
+    print("Removing outliers... with method:", args.robust)
     if args.robust != 'No':
+
         mov_data = remove_outliers(ref_data, mov_data, args)
     cols = list(ROBUST_METHODS.keys())
     cols_to_drop = [c for c in cols if c in mov_data.columns]

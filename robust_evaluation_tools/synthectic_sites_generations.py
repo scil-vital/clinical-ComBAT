@@ -402,7 +402,7 @@ def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path
     df = df[~((df['disease'] == 'HC') & (df['old_site'] != 'CamCAN'))]
     if disease == "ASTMIX":
         df = df[df['disease'].isin(['AD', 'SCHZ', 'TBI', 'HC'])]
-    elif disease is not None:
+    elif disease is not None and disease != "ALL":
         df = df[(df['disease'] == disease) | (df['disease'] == 'HC')]
 
     train_df, test_df = split_train_test(df, test_size=0.05, random_state=43)

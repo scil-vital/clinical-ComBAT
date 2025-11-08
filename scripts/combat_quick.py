@@ -13,6 +13,13 @@ Harmonization methods:
     clinic (default):
             uses a priori from the reference site to fit the moving site
             (Beta_mov, variance)
+    covbat:
+            first applies classic ComBat and then aligns covariance across sites following
+            the CovBat procedure (Chen et al., 2021)
+    gam:
+            replaces the linear age model by a spline-based fit (ComBat-GAM)
+    gmm:
+            models standardized residuals using Gaussian mixtures to better match higher-order moments
 
 NOTE: the harmonization parameters (regul, degree, nu, tau) are preset according to the
       harmonization method chosen. See default settings.
@@ -71,7 +78,7 @@ def _build_arg_parser():
         "-m",
         "--method",
         default="clinic",
-        choices=["classic", "clinic"],
+        choices=["classic", "clinic", "covbat", "gam", "gmm"],
         help="Harmonization method.",
     )
     p.add_argument(
@@ -97,7 +104,7 @@ def _build_arg_parser():
     )
     p.add_argument(
         "--robust",
-        action="store_true",
+        default="MLP4_ALL_5",
         help="If set, use combat robust. This tries "
         + "identifying/rejecting non-HC subjects.",
     )
@@ -134,6 +141,41 @@ def _build_arg_parser():
         "It must be >= 1. [%(default)s]",
     )
     p.add_argument(
+        "--covbat_pve",
+        type=float,
+        default=0.95,
+        help="Minimum proportion of variance explained to retain for CovBat adjustments. [%(default)s]",
+    )
+    p.add_argument(
+        "--covbat_max_components",
+        type=int,
+        help="Maximum number of principal components to harmonize with CovBat.",
+    )
+    p.add_argument(
+        "--gam_n_knots",
+        type=int,
+        default=7,
+        help="Number of knots used for the natural spline age term in ComBat-GAM. [%(default)s]",
+    )
+    p.add_argument(
+        "--gmm_components",
+        type=int,
+        default=2,
+        help="Number of Gaussian components to use for ComBat-GMM. [%(default)s]",
+    )
+    p.add_argument(
+        "--gmm_tol",
+        type=float,
+        default=1e-4,
+        help="Tolerance on log-likelihood improvement for the ComBat-GMM EM algorithm. [%(default)s]",
+    )
+    p.add_argument(
+        "--gmm_max_iter",
+        type=int,
+        default=50,
+        help="Maximum number of EM iterations for ComBat-GMM. [%(default)s]",
+    )
+    p.add_argument(
         "--bundles",
         nargs="+",
         help="List of bundle to use for figures. To plot all bundles use "
@@ -167,7 +209,7 @@ def main():
 
     all_bundles = list(ref_data.bundle.unique())
     if args.bundles is None:
-        args.bundles = ["mni_IIT_mask_skeletonFA"]
+        args.bundles = ["mni_AC"]
     elif args.bundles == ["all"]:
         args.bundles = all_bundles
     for b in args.bundles:
@@ -244,7 +286,19 @@ def main():
     if args.no_empirical_bayes:
         cmd += " --no_empirical_bayes"
     if args.robust:
-        cmd += " --robust"
+        cmd += " --robust " + str(args.robust)
+    if args.covbat_pve is not None:
+        cmd += " --covbat_pve " + str(args.covbat_pve)
+    if args.covbat_max_components is not None:
+        cmd += " --covbat_max_components " + str(args.covbat_max_components)
+    if args.gam_n_knots is not None:
+        cmd += " --gam_n_knots " + str(args.gam_n_knots)
+    if args.gmm_components is not None:
+        cmd += " --gmm_components " + str(args.gmm_components)
+    if args.gmm_tol is not None:
+        cmd += " --gmm_tol " + str(args.gmm_tol)
+    if args.gmm_max_iter is not None:
+        cmd += " --gmm_max_iter " + str(args.gmm_max_iter)
     if args.overwrite:
         cmd += " -f"
     logging.info(cmd)
@@ -347,7 +401,7 @@ def main():
         cmd += " -f"
 
     logging.info(cmd)
-    subprocess.call(cmd, shell=True)
+    # subprocess.call(cmd, shell=True)
 
     print("\n   Harmonized data ")
     cmd = (
@@ -369,7 +423,7 @@ def main():
         cmd += " -f"
 
     logging.info(cmd)
-    subprocess.call(cmd, shell=True)
+    # subprocess.call(cmd, shell=True)
     print("\n ")
 
 

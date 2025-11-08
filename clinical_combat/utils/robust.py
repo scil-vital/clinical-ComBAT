@@ -9,6 +9,7 @@ from sklearn.metrics import precision_score, recall_score, confusion_matrix, f1_
 from sklearn.neighbors import LocalOutlierFactor
 import json
 import os
+import inspect
 from scipy.spatial.distance import euclidean
 from scipy.stats import shapiro
 
@@ -17,7 +18,10 @@ def remove_outliers(ref_data, mov_data, args):
     print("Removing outliers with method", args.robust)
 
     find_outlier = ROBUST_METHODS.get(args.robust)
+    if find_outlier is None:
+        raise ValueError(f"Robust method '{args.robust}' is not supported.")
     rwp = args.rwp
+    threshold = getattr(args, "robust_threshold", None)
 
     # Initialize QC model
     covbat_pve = getattr(args, "covbat_pve", 0.95)
@@ -54,11 +58,11 @@ def remove_outliers(ref_data, mov_data, args):
     # Find outliers
     outliers_idx = []
     if args.robust in ['Z_SCORE_METRIC']:
-        outliers_idx += find_outlier(mov_data)
+        outliers_idx += find_outlier(mov_data, threshold=threshold)
     else:
         for bundle in QC.bundle_names:
             data = mov_data.query("bundle == @bundle")
-            outliers_idx += find_outlier(data)
+            outliers_idx += find_outlier(data, threshold=threshold)
         
     if not rwp and (site.endswith('viz')):
         plot_distributions_and_scatter(mov_data, outliers_idx, args.out_dir, y_column='mean_no_cov', robust_method=args.robust)
@@ -86,7 +90,7 @@ def remove_outliers(ref_data, mov_data, args):
         mov_data = mov_data.drop(outliers_idx)
     return mov_data
 
-def find_outliers_IQR(data, seuil=1.5):
+def find_outliers_IQR(data, threshold=1.5):
     """
     Détecte les outliers selon la méthode de l'IQR,
     en s'assurant de laisser au moins 2 données dans l'ensemble.
@@ -101,8 +105,8 @@ def find_outliers_IQR(data, seuil=1.5):
     Q3 = data['mean_no_cov'].quantile(0.75)
     IQR = Q3 - Q1
 
-    lower_bound = Q1 - seuil * IQR
-    upper_bound = Q3 + seuil * IQR
+    lower_bound = Q1 - threshold * IQR
+    upper_bound = Q3 + threshold * IQR
 
     # Masque des outliers
     outlier_mask = (data['mean_no_cov'] < lower_bound) | (data['mean_no_cov'] > upper_bound)
@@ -123,17 +127,17 @@ def find_outliers_IQR(data, seuil=1.5):
 
     return outlier_indices
 
-def find_outliers_ZSCORE_BUNDLE(data, seuil=3.0):
+def find_outliers_ZSCORE_BUNDLE(data, threshold=3.0):
     """
-    Détecte les outliers avec le Z-score (|z| > seuil),
+    Détecte les outliers avec le Z-score (|z| > threshold),
     tout en laissant au moins 2 valeurs dans l’ensemble.
 
     Paramètres
     ----------
     data : pandas.DataFrame
         Doit contenir la colonne 'mean_no_cov'.
-    seuil : float, optionnel
-        Seuil absolu du Z-score (par défaut 3.0).
+    threshold : float, optionnel
+        Threshold absolu du Z-score (par défaut 3.0).
 
     Retour
     ------
@@ -152,7 +156,7 @@ def find_outliers_ZSCORE_BUNDLE(data, seuil=3.0):
         return []
 
     z_scores = (col - mu) / sigma
-    outlier_mask = z_scores.abs() > seuil
+    outlier_mask = z_scores.abs() > threshold
     outlier_indices = data[outlier_mask].index.to_list()
 
     # S’assurer qu’il reste au moins 2 points
@@ -219,14 +223,13 @@ def find_outliers_VS(data, column='mean_no_cov'):
     return outliers_idx
 
 
-def find_outliers_VS2(data, column='mean_no_cov'):
+def find_outliers_VS2(data):
     """
     Équilibre les valeurs autour de la médiane en supprimant les valeurs les plus éloignées
     jusqu'à ce que la somme des écarts à droite et à gauche de la médiane soit équilibrée.
 
     Paramètres :
         data (DataFrame): Le DataFrame contenant les données.
-        column (str): Le nom de la colonne à analyser pour équilibrer les valeurs.
 
     Retourne :
         list: Une liste des indices des valeurs supprimées.
@@ -235,7 +238,7 @@ def find_outliers_VS2(data, column='mean_no_cov'):
     METRICS_HIGH = {'md', 'mdt', 'rd', 'rdt', 'fw', 'ad', 'adt'}  # patho ↑
     METRICS_LOW  = {'fa', 'fat', 'afd'}                           # patho ↓
     # ------------------------------------------------------------------
-
+    column='mean_no_cov'
     metric_name = data['metric'].iloc[0]
 
     if metric_name in METRICS_HIGH:
@@ -274,19 +277,20 @@ def find_outliers_VS2(data, column='mean_no_cov'):
 
     return outliers_idx
 
-def find_outliers_MAD(data, column='mean_no_cov', threshold=3.5):
+def find_outliers_MAD(data, threshold=3.5):
     """
     Détecte les valeurs aberrantes dans un DataFrame à l'aide de la méthode MAD,
     en s'assurant de laisser au moins 2 données dans le DataFrame.
 
     Paramètres :
         data (DataFrame): Le DataFrame contenant les données.
-        column (str): Le nom de la colonne à analyser pour détecter les outliers.
-        threshold (float): Le seuil pour considérer une valeur comme un outlier. Par défaut : 3.5.
+        threshold (float): Valeur limite au-delà de laquelle une observation est considérée
+            comme outlier. Par défaut : 3.5.
 
     Retourne :
         list: Une liste des indices des valeurs aberrantes, tout en conservant au moins deux données valides.
     """
+    column='mean_no_cov'
     if len(data) <= 2:
         return []
 
@@ -313,7 +317,7 @@ def find_outliers_MAD(data, column='mean_no_cov', threshold=3.5):
 
     return outlier_indices
 
-def find_outliers_ZSCORE_METRIC(df, seuil=3.0):
+def find_outliers_ZSCORE_METRIC(df, threshold=3.0):
     if df["sid"].nunique() <= 2:
         return []
     work = df.copy()
@@ -327,7 +331,7 @@ def find_outliers_ZSCORE_METRIC(df, seuil=3.0):
 
     work["_z"] = work.groupby("bundle")["mean_no_cov"].transform(_z)
     mean_abs_z = work.groupby("sid")["_z"].apply(lambda s: s.abs().mean())
-    outlier_sids = mean_abs_z[mean_abs_z > seuil].index
+    outlier_sids = mean_abs_z[mean_abs_z > threshold].index
 
     if work["sid"].nunique() - len(outlier_sids) < 2:
         to_kick = mean_abs_z.sort_values(ascending=False).index
@@ -375,29 +379,6 @@ def reject_outliers_until_mad_equals_mean(data, threshold=0.001):
 
     return outliers_idx
 
-def remove_top_x_percent(data, column='mean_no_cov', x=5):
-    """
-    Supprime les x % des valeurs les plus élevées dans une colonne donnée.
-
-    Paramètres :
-        data (DataFrame): Le DataFrame contenant les données.
-        column (str): Le nom de la colonne à analyser.
-        x (float): Le pourcentage des valeurs les plus élevées à supprimer.
-
-    Retourne :
-        list: Une liste des indices des valeurs supprimées.
-    """
-    if x <= 0 or x > 100:
-        raise ValueError("x doit être un pourcentage entre 0 et 100.")
-
-    # Calcul du nombre de valeurs à supprimer
-    num_to_remove = int(len(data) * (x / 100.0))
-
-    # Trouver les indices des x % des valeurs les plus élevées
-    outliers_idx = data.nlargest(num_to_remove, column).index.to_list()
-    # Afficher les 'sid' des outliers
-
-    return outliers_idx
 
 def cheat(data):
     return data[data['disease'] != 'HC'].index.to_list()
@@ -417,8 +398,18 @@ def mad_vs(data):
     subset = data.drop(mad_idx)
     return find_outliers_VS(subset) 
 
-def flagged(data, method):
-    return data[data[method] == 1].index.to_list() 
+def flagged(data, method, threshold: float = 1.0):
+    """
+    Retourne la liste des index dont la colonne `method` dépasse `threshold`.
+    Par défaut, reproduit l'ancien comportement en cherchant les entrées égales à 1.
+    """
+    if method not in data.columns:
+        raise KeyError(f"La colonne '{method}' est absente des données.")
+
+    values = pd.to_numeric(data[method], errors="coerce")
+    mask = values >= threshold
+    mask = mask.fillna(False)
+    return values[mask].index.to_list()
 
 def rien(data):
     return []
@@ -437,11 +428,11 @@ def mlp26_all_mad(data, threshold=3.5):
 # Sn : médiane des médianes des distances, facteur 1.1926
 # ------------------------------------------------------------
 def find_outliers_SN(data: pd.DataFrame,
-                     column: str = "mean_no_cov",
                      threshold: float = 3.0) -> list:
     """
     Détecte les outliers avec l'estimateur Sn de Rousseeuw et Croux.
     """
+    column='mean_no_cov'
     if len(data) <= 2:
         return []
 
@@ -474,11 +465,11 @@ def find_outliers_SN(data: pd.DataFrame,
 # Qn : 1er quartile des paires, facteur 2.2219
 # ------------------------------------------------------------
 def find_outliers_QN(data: pd.DataFrame,
-                     column: str = "mean_no_cov",
                      threshold: float = 3.0) -> list:
     """
     Détecte les outliers avec l'estimateur Qn de Rousseeuw et Croux.
     """
+    column='mean_no_cov'
     if len(data) <= 2:
         return []
 
@@ -536,21 +527,18 @@ def _auto_contamination(x: np.ndarray,
     return float(np.clip(contamination, min_c, max_c))
 
 def find_outliers_LOF(data: pd.DataFrame,
-                           column: str = "mean_no_cov",
-                           k: int = 20,
-                           verbose: bool = False) -> list:
+                           k: int = 20) -> list:
     """
     Détecte les outliers en 1-D avec LOF, en estimant automatiquement
     la proportion d'outliers selon la « gaussianité » des données.
     """
+    column='mean_no_cov'
     if len(data) <= 2:
         return []
 
     x = data[column].to_numpy()
     contamination = _auto_contamination(x)
 
-    if verbose:
-        print(f"Contamination estimée : {contamination:.3f}")
 
     lof = LocalOutlierFactor(n_neighbors=min(k, len(x) - 1),
                              contamination=contamination)
@@ -565,56 +553,55 @@ def find_outliers_LOF(data: pd.DataFrame,
         outlier_idx = sorted_idx[: len(data) - 2].to_list()
 
     return outlier_idx
-    
+
+def _make_threshold_wrapper(func, default=None, param="threshold", **extra_kwargs):
+    """
+    Retourne un wrapper qui transmet une valeur de `threshold` optionnelle au paramètre `param`.
+    Sans valeur fournie (ou si le `threshold` par défaut est None), la fonction est appelée
+    sans paramètre additionnel.
+    """
+    accepts_param = param in inspect.signature(func).parameters
+
+    def wrapper(data, threshold=None):
+        value = default if threshold is None else threshold
+        kwargs = dict(extra_kwargs)
+        if value is not None and accepts_param:
+            kwargs[param] = value
+        return func(data, **kwargs)
+    return wrapper
+
+
+def _make_flagged_wrapper(method: str, default_threshold: float):
+    def wrapper(data, threshold=None):
+        value = default_threshold if threshold is None else threshold
+        return flagged(data, method=method, threshold=value)
+    return wrapper
+
+
 ROBUST_METHODS = {
-    "IQR": find_outliers_IQR,
-    "IQR_STRICT": lambda data: find_outliers_IQR(data, seuil=1.0),
-    "MAD": find_outliers_MAD,
-    "MAD_VS": mad_vs,
-    "MAD_STRICT": lambda data: find_outliers_MAD(data, threshold=2.0),
-    "SN": find_outliers_SN,
-    "QN": find_outliers_QN,
-    "LOF": find_outliers_LOF,
-    "MMS": reject_outliers_until_mad_equals_mean,
-    "VS": find_outliers_VS,
-    "VS2": find_outliers_VS2,
-    "TOP5": lambda data: remove_top_x_percent(data, x=5),
-    "TOP10": lambda data: remove_top_x_percent(data, x=10),
-    "TOP20": lambda data: remove_top_x_percent(data, x=20),
-    "TOP30": lambda data: remove_top_x_percent(data, x=30),
-    "TOP40": lambda data: remove_top_x_percent(data, x=40),
-    "TOP50": lambda data: remove_top_x_percent(data, x=50),
-    "CHEAT": cheat,
-    "FLIP": rien,
-    "Z_SCORE": lambda data: flagged(data, method='Z_SCORE'),
-    "Z_SCORE_IQR": zscore_IQR,
-    "Z_SCORE_MAD": zscore_MAD,
-    "Z_SCORE_BUNDLE": lambda data: find_outliers_ZSCORE_BUNDLE(data, seuil=3.0),
-    "Z_SCORE_BUNDLE_STRICT": lambda data: find_outliers_ZSCORE_BUNDLE(data, seuil=2.0),
-    "Z_SCORE_METRIC": find_outliers_ZSCORE_METRIC,
-    "Z_SCORE_METRIC_STRICT": lambda data: find_outliers_ZSCORE_METRIC(data, seuil=2.0),
-    "Z_SCORE_METRIC_VSTRICT": lambda data: find_outliers_ZSCORE_METRIC(data, seuil=1.0),
-    "MLP_ALL_5": lambda data: flagged(data, method='MLP_ALL_5'),
-    "MLP_ALL_6": lambda data: flagged(data, method='MLP_ALL_6'),
-    "MLP_ALL_9": lambda data: flagged(data, method='MLP_ALL_9'),
-    "MLP_ALL_95": lambda data: flagged(data, method='MLP_ALL_95'),
-    "MLP_ALL_99": lambda data: flagged(data, method='MLP_ALL_99'),
-    "MLP2_ALL_5": lambda data: flagged(data, method='MLP2_ALL_5'),
-    "MLP2_ALL_6": lambda data: flagged(data, method='MLP2_ALL_6'),
-    "MLP2_ALL_9": lambda data: flagged(data, method='MLP2_ALL_9'),
-    "MLP2_ALL_95": lambda data: flagged(data, method='MLP2_ALL_95'),
-    "MLP2_ALL_99": lambda data: flagged(data, method='MLP2_ALL_99'),
-    "MLP3_ALL_5": lambda data: flagged(data, method='MLP3_ALL_5'),
-    "MLP3_ALL_6": lambda data: flagged(data, method='MLP3_ALL_6'),
-    "MLP3_ALL_9": lambda data: flagged(data, method='MLP3_ALL_9'),
-    "MLP3_ALL_95": lambda data: flagged(data, method='MLP3_ALL_95'),
-    "MLP3_ALL_99": lambda data: flagged(data, method='MLP3_ALL_99'),
-    "MLP4_ALL_5": lambda data: flagged(data, method='MLP4_ALL_5'),
-    "MLP4_ALL_6": lambda data: flagged(data, method='MLP4_ALL_6'),
-    "MLP4_ALL_9": lambda data: flagged(data, method='MLP4_ALL_9'),
-    "MLP4_ALL_95": lambda data: flagged(data, method='MLP4_ALL_95'),
-    "MLP4_ALL_99": lambda data: flagged(data, method='MLP4_ALL_99'),
+    "IQR": _make_threshold_wrapper(find_outliers_IQR, default=1.5),
+    "MAD": _make_threshold_wrapper(find_outliers_MAD, default=3.5),
+    "MAD_VS": _make_threshold_wrapper(mad_vs, default=None),
+    "SN": _make_threshold_wrapper(find_outliers_SN, default=3.0),
+    "QN": _make_threshold_wrapper(find_outliers_QN, default=3.0),
+    "LOF": _make_threshold_wrapper(find_outliers_LOF, default=None),
+    "MMS": _make_threshold_wrapper(reject_outliers_until_mad_equals_mean, default=0.001),
+    "VS": _make_threshold_wrapper(find_outliers_VS, default=None),
+    "VS2": _make_threshold_wrapper(find_outliers_VS2, default=None),
+    "Z_SCORE": _make_flagged_wrapper("Z_SCORE", default_threshold=1.0),
+    "Z_SCORE_IQR": _make_threshold_wrapper(zscore_IQR, default=None),
+    "Z_SCORE_MAD": _make_threshold_wrapper(zscore_MAD, default=None),
+    "Z_SCORE_BUNDLE": _make_threshold_wrapper(find_outliers_ZSCORE_BUNDLE, default=3.0),
+    "Z_SCORE_METRIC": _make_threshold_wrapper(find_outliers_ZSCORE_METRIC, default=3.0),
+    "CHEAT": _make_threshold_wrapper(cheat, default=None),
+    "FLIP": _make_threshold_wrapper(rien, default=None),
+    "MLP_ALL": _make_flagged_wrapper("MLP_ALL", default_threshold=0.5),
+    "MLP2_ALL": _make_flagged_wrapper("MLP2_ALL", default_threshold=0.5),
+    "MLP3_ALL": _make_flagged_wrapper("MLP3_ALL", default_threshold=0.5),
+    "MLP4_ALL_5": _make_flagged_wrapper("MLP4_ALL_5", default_threshold=0.5),
 }
+
+
 from clinical_combat.harmonization.QuickCombat import QuickCombat
 
 def get_design_matrices(df, ignore_handedness=False, ignore_sex=False):

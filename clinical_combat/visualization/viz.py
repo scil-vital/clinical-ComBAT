@@ -23,7 +23,6 @@ custom_palette = [
     "#a5bc0e",
     "#39618f",
     "#31984d",
-    "#b75c50",
     "#c08f07",
     "#5f6ca7",
     "#3CB371",
@@ -55,6 +54,13 @@ custom_palette = [
     "#6A5ACD",
 ] * 10
 
+disease_palette = [
+    "#de3838",
+    "#FFB773",
+    "#37B6CE",
+    "#6A5ACD",
+    "#b75c50",
+] * 10
 
 line_style = [
     "-",
