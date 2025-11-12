@@ -110,13 +110,14 @@ def save_quickcombat_data_to_csv(
         method_name (str): harmonization method name.
         model_name (str): harmonization model name.
         out_filename (str): output file name.
-    
+
     Returns:
         CSV file with the harmonized data.
 
     """
     header = (
-        "sid,bundle,metric,mean,site,age,sex,handedness,disease,harmonization,model"
+        "sid,bundle,metric,mean,site,age,"
+        "sex,handedness,disease,harmonization,model"
     )
 
     if ".model.csv" in model_name:
@@ -156,4 +157,5 @@ def save_quickcombat_data_to_csv(
         )
         res = np.hstack([res, mov_combat])
 
-    np.savetxt(out_filename, res.T, delimiter=",", header=header, fmt="%s", comments="")
+    np.savetxt(out_filename, res.T, delimiter=",",
+               header=header, fmt="%s", comments="")

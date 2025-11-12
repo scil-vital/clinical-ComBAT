@@ -85,13 +85,14 @@ class QuickHarmonizationMethod:
                     if v not in [1, 2]:
                         raise AssertionError(
                             str(v)
-                            + " is an invalid value for the sex covariate. Set ignore_sex_covariate "
-                            + "to harmonize this data."
+                            + " is an invalid value for the sex covariate."
+                            "Set ignore_sex_covariate to harmonize this data."
                         )
                 if len(df1.sex.unique()) == 1:
                     self.ignore_sex_covariate = True
                     logging.warning(
-                        "A single sex covariate was found. The sex covariate will be ignored."
+                        "A single sex covariate was found."
+                        "The sex covariate will be ignored."
                     )
 
             if not self.ignore_handedness_covariate:
@@ -99,14 +100,15 @@ class QuickHarmonizationMethod:
                     if v not in [1, 2]:
                         raise AssertionError(
                             str(v)
-                            + " is an invalid value for the handedness covariate. "
-                            + "Set ignore_handedness_covariate to harmonize this data."
+                            + " is an invalid value for the handedness "
+                            "covariate. Set ignore_handedness_covariate "
+                            "to harmonize this data."
                         )
                 if len(df1.handedness.unique()) == 1:
                     self.ignore_handedness_covariate = True
                     logging.warning(
                         "A single handedness covariate was found. "
-                        + "The handedness covariate will be ignored."
+                        "The handedness covariate will be ignored."
                     )
 
     def set_model_fit_params(self, ref_data, mov_data):

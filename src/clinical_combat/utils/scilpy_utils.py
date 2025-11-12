@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Scripts duplicating functions originally available in Scilpy.
-
 """
 
 import os
+
 
 def assert_outputs_exist(parser, args, required, optional=None, check_dir_exists=True):
     """
@@ -23,7 +23,8 @@ def assert_outputs_exist(parser, args, required, optional=None, check_dir_exists
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error(
-                "Output file {} exists. Use -f to force " "overwriting".format(path)
+                "Output file {} exists. Use -f to force "
+                "overwriting".format(path)
             )
 
         if check_dir_exists:

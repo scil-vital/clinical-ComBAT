@@ -43,10 +43,9 @@ import argparse
 import pandas as pd
 import numpy as np
 
-#from clinical_combat.harmonization import compute_single_subject_harmonization
 from clinical_combat.visualization.viz import (generate_query,
-                                              compute_reference_average_variability,
-                                              compute_distance_between_harmonization)
+                                               compute_reference_average_variability,
+                                               compute_distance_between_harmonization)
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -58,31 +57,43 @@ def _build_arg_parser():
 
     p.add_argument("in_file", help="Json or CSV file with raw input data")
 
-    harmonization = p.add_argument_group(title='Options for Harmonization')
-    harmonization.add_argument("--outname", help="Output file name. The input file name with suffix"
-                               " _single_subject_harmonization.csv is used by default.")
-    harmonization.add_argument("--method", default="mean", choices=["mean", "median"],
-                               help="Method to compute average and variability across bundles "
-                               "[%(default)s].")
-    harmonization.add_argument("--save_bundles_data", action="store_true",
-                               help="Save the average and variability of the bundles for each "
-                               "subject in *.bundle_data.csv.")
+    h = p.add_argument_group(title='Options for Harmonization')
+    h.add_argument("--outname",
+                   help="Output file name. The input file name with suffix "
+                        "_single_subject_harmonization.csv is used by default.")
+    h.add_argument("--method",
+                   default="mean",
+                   choices=["mean", "median"],
+                   help="Method to compute average and variability across bundles "
+                        "[%(default)s].")
+    h.add_argument("--save_bundles_data",
+                   action="store_true",
+                   help="Save the average and variability of the bundles for each "
+                        "subject in *.bundle_data.csv.")
 
-    reference = p.add_argument_group(title='Options for Reference site')
-    reference.add_argument("--reference_site", default="MRC-CBSU_Siemens_3T_2",
-                           help="Tag for reference site [%(default)s].")
-
+    r = p.add_argument_group(title='Options for Reference site')
+    r.add_argument("--reference_site",
+                   default="MRC-CBSU_Siemens_3T_2",
+                   help="Tag for reference site [%(default)s].")
 
     wdw = p.add_argument_group(title='Window options for the moving average mean and standard '
                                'deviation computation')
-    wdw.add_argument("--window_size", type=int, default=4,
+    wdw.add_argument("--window_size",
+                     type=int,
+                     default=4,
                      help="Window size in years [%(default)s].")
-    wdw.add_argument("--window_count", type=int, default=5,
+    wdw.add_argument("--window_count",
+                     type=int,
+                     default=5,
                      help="Minimum number of subjects per window [%(default)s].")
-    wdw.add_argument("--window_update", action="store_true",
-                     help="Update the window size to have a minimum number of subjects per window"
-                     " [%(default)s].")
-    wdw.add_argument("--ages", nargs=2, default=(20, 90),  metavar=('MIN', 'MAX'),
+    wdw.add_argument("--window_update",
+                     action="store_true",
+                     help="Update the window size to have a minimum "
+                          "number of subjects per window [%(default)s].")
+    wdw.add_argument("--ages",
+                     nargs=2,
+                     default=(20, 90),
+                     metavar=('MIN', 'MAX'),
                      help="Range of ages to use [%(default)s].")
 
     data = p.add_argument_group(title='Options for data selection')
@@ -102,11 +113,11 @@ def _build_arg_parser():
     error = p.add_argument_group(title='Options to plot error bars')
     error.add_argument("--in_ref_harmonization",
                        help="Path to json or csv results file used as reference for compute error"
-                       " bars for plot. \nUsed to compare single subject harmonization results.")
+                            " bars for plot. \nUsed to compare single subject harmonization results.")
     error.add_argument("--harmonization_name", default="combat",
                        help="Row criteria corresponding to harmonization type in harmonization "
-                       "column [%(default)s].\nUsed to compare single subject harmonization "
-                       "results.")
+                            "column [%(default)s].\nUsed to compare single subject harmonization "
+                            "results.")
 
     return p
 
@@ -125,7 +136,7 @@ def compute_single_subject_harmonization(subject_bundle_value, average_moving, v
     Returns:
         bundle_harmonized: float, harmonized value of the bundle for the subject
     """
-    bundle_harmonized = ((subject_bundle_value - average_moving) * \
+    bundle_harmonized = ((subject_bundle_value - average_moving) *
                          (variability_target/variability_moving)) + average_target
     return bundle_harmonized
 
@@ -187,12 +198,12 @@ def main():
                 variability_bundles_subject = curr_subject['mean'].std()
             elif args.method == 'median':
                 average_bundles_subject = curr_subject['mean'].median()
-                variability_bundles_subject = np.median(np.absolute(curr_subject['mean'] - \
+                variability_bundles_subject = np.median(np.absolute(curr_subject['mean'] -
                                                                     average_bundles_subject))
 
             average_bundles_ref, variability_bundles_ref = compute_reference_average_variability(
                 df_reference_site, curr_subject.age.values[0], windows_size=args.window_size,
-                 method=args.method)
+                method=args.method)
 
             # Compute for each bundle the single subject harmonized value
             ss_harmonized_bundles_values = []
@@ -210,8 +221,9 @@ def main():
 
             if args.save_bundles_data:
                 # Add subjects average and variability values for all bundles
-                ss_bundles_data_per_subject.append([subject, average_bundles_subject,
-                                                 variability_bundles_subject])
+                ss_bundles_data_per_subject.append([subject,
+                                                    average_bundles_subject,
+                                                    variability_bundles_subject])
 
         # Save single subject harmonization data :
         # concatenate POST single_subject (ss) harmonization data and reference data
@@ -253,7 +265,7 @@ def main():
         # Concatenate in order PRE and POST data for reference and moving sites in one DataFrame
         final_ss_harmonized_df = pd.concat([df_reference_site, df_moving_sites,
                                             df_reference_site_for_ss, ss_harmonized_df],
-                                            ignore_index=True)
+                                           ignore_index=True)
         # Save DataFrame in csv file
         final_ss_harmonized_df.to_csv(args.outname + '_single_subject_harmonization.csv',
                                       index=False)
@@ -262,7 +274,7 @@ def main():
         bundles_tmp = []
         if len(ss_bundles_data_per_subject) > 0:
             bundles_tmp.append(pd.DataFrame(ss_bundles_data_per_subject,
-                                            columns=['sid','average','variability']))
+                                            columns=['sid', 'average', 'variability']))
             bundles_data = pd.concat(bundles_tmp, ignore_index=True)
             bundles_data.to_csv(args.outname + '_single_subject_harmonization.bundle_data.csv',
                                 index=False)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 
 def leave_one_out_error(ref_data, mov_data, QC):
@@ -12,7 +11,7 @@ def leave_one_out_error(ref_data, mov_data, QC):
         ref_data (pd.DataFrame): Reference data.
         mov_data (pd.DataFrame): Data to be corrected.
         QC (QuickCombat): QuickCombat object.
-    
+
     Returns:
         error (np.float32): Mean squared error of the leave-one-out error.
     """
@@ -40,7 +39,7 @@ def find_mov_regul(ref_data, mov_data, QC):
         ref_data (pd.DataFrame): Reference data.
         mov_data (pd.DataFrame): Data to be corrected.
         QC (QuickCombat): QuickCombat object.
-    
+
     Returns:
         reg (np.float32): Optimal regularization term.
     """

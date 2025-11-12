@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generates an altered/modified version of the input site data based on three parameters:
+Generates an altered/modified version of the input site data
+based on three parameters:
         slope, add factor and multiply factor (expressed as a percentage).
         100% corresponds to the initial value of the site data.
         These parameters support positive (50) or negative (-50) values.
 
-The script returns the site data to 0 and then applies the slope, add and mult parameters.
+The script returns the site data to 0 and
+then applies the slope, add and mult parameters.
 
 # Uasage Examples :
-combat_corrupt_data input.csv output.csv --mult 50 --add 30 --slope 10
-combat_corrupt_data input.csv output.csv --mult 150 --add 80 --slope -30 --nbr_sub 100
-combat_corrupt_data input.csv output.csv --mult 95 --add 125 --slope -40 --nbr_sub 50 \
-                       --site_name "new_site_name"
+combat_corrupt_data input.csv output.csv \
+                    --mult 50 --add 30 --slope 10
+
+combat_corrupt_data input.csv output.csv \
+                    --mult 150 --add 80 --slope -30 --nbr_sub 100
+
+combat_corrupt_data input.csv output.csv \
+                    --mult 95 --add 125 --slope -40 --nbr_sub 50 \
+                    --site_name "new_site_name"
 """
 
 import argparse
@@ -38,61 +45,48 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    p.add_argument("in_file", help="Input CSV site file.")
-    p.add_argument("out_file", help="Output corrupted CSV site file.")
-    p.add_argument(
-        "--mult",
-        type=float,
-        default=100,
-        help="Multiplicative bias in percent. Adjust the variance of the data. "
-        "100 is not changing it. [%(default)s]",
-    )
-    p.add_argument(
-        "--add",
-        type=float,
-        default=100,
-        help="Additive bias in percent. Adjust the intercept of the data. "
-        "100 is not changing it. [%(default)s]",
-    )
-    p.add_argument(
-        "--slope",
-        type=float,
-        default=100,
-        help="Slope bias in percent. Adjust the slope of the data. "
-        "100 is not changing it. [%(default)s]",
-    )
-    p.add_argument(
-        "--nbr_sub",
-        type=int,
-        default=-1,
-        help="Mx number of subject to select. By default, all subjets are used.",
-    )
-    p.add_argument(
-        "--site_name",
-        type=str,
-        help="Change the site name. By default the site name is unchanged.",
-    )
-    p.add_argument(
-        "--HC",
-        action="store_true",
-        help="Only select HC.",
-    )
-    p.add_argument(
-        "--degree",
-        type=int,
-        help="Degree of the polynomial fit. [%(default)s]",
-        default="1",
-    )
-    p.add_argument(
-        "--ignore_sex",
-        action="store_true",
-        help="If set, ignore the sex covariate in the data.",
-    )
-    p.add_argument(
-        "--ignore_handedness",
-        action="store_true",
-        help="If set, ignore the handedness covariate in the data.",
-    )
+    p.add_argument("in_file",
+                   help="Input CSV site file.")
+    p.add_argument("out_file",
+                   help="Output corrupted CSV site file.")
+    p.add_argument("--mult",
+                   type=float,
+                   default=100,
+                   help="Multiplicative bias in percent."
+                        "Adjust the variance of the data. "
+                        "100 is not changing it. [%(default)s]")
+    p.add_argument("--add",
+                   type=float,
+                   default=100,
+                   help="Additive bias in percent. Adjust the intercept of "
+                        "the data. 100 is not changing it. [%(default)s]")
+    p.add_argument("--slope",
+                   type=float,
+                   default=100,
+                   help="Slope bias in percent. Adjust the slope of the data. "
+                        "100 is not changing it. [%(default)s]")
+    p.add_argument("--nbr_sub",
+                   type=int,
+                   default=-1,
+                   help="Max number of subject to select."
+                        "By default, all subjects are used.")
+    p.add_argument("--site_name",
+                   type=str,
+                   help="Change the site name. By default the site name "
+                        "is unchanged.")
+    p.add_argument("--HC",
+                   action="store_true",
+                   help="Only select HC.")
+    p.add_argument("--degree",
+                   type=int,
+                   default="1",
+                   help="Degree of the polynomial fit. [%(default)s]")
+    p.add_argument("--ignore_sex",
+                   action="store_true",
+                   help="If set, ignore the sex covariate in the data.")
+    p.add_argument("--ignore_handedness",
+                   action="store_true",
+                   help="If set, ignore the handedness covariate in the data.")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -137,7 +131,7 @@ def main():
     )
     model.bundle_names = data.bundle.unique()
 
-    all_design, all_y = model.get_design_matrices(all_data)    
+    all_design, all_y = model.get_design_matrices(all_data)
     alpha, beta = QuickCombat.get_alpha_beta(all_design, all_y)
     sigma = QuickCombat.get_sigma(all_design, all_y, alpha, beta)
 
