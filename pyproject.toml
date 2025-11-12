@@ -5,7 +5,7 @@ requires = [
     "matplotlib==3.10.*",
     "nibabel==5.3.*",
     "seaborn==0.13.2",
-    "setuptools==75.1.0"]
+    "setuptools==75.1.0",]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -39,7 +39,10 @@ dependencies = [
     "matplotlib==3.10.*",
     "seaborn==0.13.2",
     "nibabel==5.3.*",
-    "setuptools==75.1.0"]
+    "setuptools==75.1.0",
+    "tqdm==4.*",
+    "joblib==1.5.2",
+    "scikit-learn==1.7.2"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ipython"]
@@ -67,3 +70,12 @@ combat_single_subject_harmonization  = "clinical_combat.cli.combat_single_subjec
 combat_visualize_data  = "clinical_combat.cli.combat_visualize_data:main"
 combat_visualize_harmonization  = "clinical_combat.cli.combat_visualize_harmonization:main"
 combat_visualize_model  = "clinical_combat.cli.combat_visualize_model:main"
+
+combat_covariates_modify  = "clinical_combat.cli_dev.combat_covariates_modify:main"
+combat_json_viz_manufacturer  = "clinical_combat.cli_dev.combat_json_viz_manufacturer:main"
+combat_visualize_density  = "clinical_combat.cli_dev.combat_visualize_density:main"
+combat_visualize_errors_cohensd  = "clinical_combat.cli_dev.combat_visualize_errors_cohensd:main"
+combat_visualize_sites_boxplot  = "clinical_combat.cli_dev.combat_visualize_sites_boxplot:main"
+create_tensor_nimh  = "clinical_combat.cli_dev.create_tensor_nimh:main"
+create_tensor_nocov  = "clinical_combat.cli_dev.create_tensor_nocov:main"
+create_tensor  = "clinical_combat.cli_dev.create_tensor:main"
