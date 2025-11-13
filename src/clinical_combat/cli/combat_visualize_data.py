@@ -15,7 +15,7 @@ combat_visualize_data reference_site.raw.csv.gz moving_site1.raw.csv.gz \
 # To display only set of bundles
 combat_visualize_data reference_site.raw.csv.gz moving_site1.raw.csv.gz \
                       moving_site2.raw.csv.gz moving_siteN.raw.csv.gz \
-                      --bundles mni_AF_L mni_AF_R
+                      --bundles AF_L AF_R
 """
 
 import argparse
@@ -44,7 +44,7 @@ def _build_arg_parser():
                    nargs="+",
                    help="List of bundle to use for figures. "
                         "To plot all bundles use --bundles all. "
-                        "['mni_IIT_mask_skeletonFA'].")
+                        "By default, it takes the second bundle.")
 
     out = p.add_argument_group(title="Options for output figure.")
     out.add_argument("--out_dir",
@@ -108,7 +108,7 @@ def main():
 
     all_bundles = list(df.bundle.unique())
     if args.bundles is None:
-        args.bundles = ["mni_IIT_mask_skeletonFA"]
+        args.bundles = all_bundles[1:2]
     elif args.bundles == ["all"]:
         args.bundles = all_bundles
     for b in args.bundles:

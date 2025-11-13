@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Apply a precompute harmonization model to a site data.
+Apply a precompute harmonization model using combat_quick_fit to a site data.
 
 Example:
 combat_quick_apply moving_site.raw.csv.gz moving_site.metric.model.csv
@@ -38,7 +38,7 @@ def _build_arg_parser():
     p.add_argument("-o", "--output_results_filename",
                    default="",
                    help="Output CSV of the harmonized data filename."
-                        "['moving-site.metric_name.model.res.csv']")
+                        "['moving-site.metric_name.model.csv']")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -77,7 +77,7 @@ def main():
             + metric_name
             + "."
             + QC.model_params["name"]
-            + ".csv.gz",
+            + ".harmonized.csv.gz",
         )
     else:
         output_filename = os.path.join(args.out_dir,

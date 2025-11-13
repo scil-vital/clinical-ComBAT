@@ -56,12 +56,12 @@ def _build_arg_parser():
     p.add_argument("--output_model_filename",
                    default="",
                    help="Output CSV model filename. "
-                        "['ref_site-moving-site.model.metric_name.csv']")
+                        "['ref_site-moving-site.metric_name.model.csv']")
 
     p.add_argument("--output_results_filename",
                    default="",
                    help="Output CSV of the harmonized data filename. "
-                        "['ref_site-moving-site.metric_name.model.res.csv']")
+                        "['ref_site-moving-site.metric_name.model.raw/harmonized.csv']")
 
     p.add_argument("-m", "--method",
                    default="clinic",
@@ -117,7 +117,7 @@ def _build_arg_parser():
                    nargs="+",
                    help="List of bundle to use for figures. "
                         "To plot all bundles use --bundles all. "
-                        "['mni_IIT_mask_skeletonFA'].")
+                        "By default, it takes the second bundle.")
     p.add_argument("--degree_qc",
                    type=int,
                    default=0,
@@ -145,7 +145,7 @@ def main():
 
     all_bundles = list(ref_data.bundle.unique())
     if args.bundles is None:
-        args.bundles = ["mni_IIT_mask_skeletonFA"]
+        args.bundles = all_bundles[1:2]
     elif args.bundles == ["all"]:
         args.bundles = all_bundles
     for b in args.bundles:
@@ -177,11 +177,11 @@ def main():
             + ref_data.metric.unique()[0]
             + "."
             + args.method
-            + ".csv.gz"
+            + ".harmonized.csv.gz"
         )
     # Fit
     print(
-        "\n ComBAT Harmonization -> \n     Reference site : ",
+        "\n ComBAT Harmonization -> \n\n     Reference site : ",
         os.path.basename(args.ref_data),
         "\n\n     Moving site : ",
         os.path.basename(args.mov_data),
@@ -249,7 +249,7 @@ def main():
     subprocess.call(cmd, shell=True)
 
     # Figures
-    print("\n\n\n Visualize Harmonization :")
+    print("\n\n Visualize Harmonization :")
     print("\n     Model (DataModels_*) :", args.output_model_filename)
 
     bundles = ""
@@ -298,7 +298,7 @@ def main():
     subprocess.call(cmd, shell=True)
 
     # QC
-    print("\n\n\n Quality control :")
+    print("\n\n Quality control :")
     print("\n   Raw data ")
 
     cmd = (

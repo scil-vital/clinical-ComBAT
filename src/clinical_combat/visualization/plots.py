@@ -660,9 +660,11 @@ def update_global_figure_style_and_save(
 
     fig.fig.subplots_adjust(top=0.9)
 
+    method_name = harmonization_type
     prefix_title = ""
     if harmonization_type != "raw":
         prefix_title = "ComBAT-"
+        method_name += "_harmonized"
 
     fig.fig.suptitle(
         prefix_title
@@ -671,8 +673,6 @@ def update_global_figure_style_and_save(
         + bundle.replace("_", " ").replace("mni ", ""),
         fontsize=title_fontsize,
     )
-
-    method_name = harmonization_type
 
     if outname is None:
         outname = "{}_{}_{}_{}{}.png".format(
