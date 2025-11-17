@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Apply a precompute harmonization model using combat_quick_fit to a site data.
+Apply a precomputed harmonization model using combat_quick_fit to a site data.
 
 Example:
 combat_quick_apply moving_site.raw.csv.gz moving_site.metric.model.csv
