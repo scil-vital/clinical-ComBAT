@@ -8,14 +8,14 @@ and its corresponding model (same colors).
 
 # Default usage
 combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz \
-                       --models harmonization.model.csv.gz
+                       --models harmonization.model.csv
 
 --------------------------------
 
 Usage examples:
 # Set fixed color for reference and moving sites
 combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz \
-                       --models harmonization.model.csv.gz \
+                       --models harmonization.model.csv \
                        --fixed_color r b
 
 # Show only models
@@ -126,6 +126,12 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Load model parameters
+    QC = from_model_filename(args.in_model)
+    mov_site = QC.model_params["mov_site"]
+    ref_site = QC.model_params["ref_site"]
+
+    # Load data
     in_files = [args.in_reference, args.in_moving]
 
     df_target = load_sites_data([args.in_reference])
@@ -142,16 +148,23 @@ def main():
     if "HC" in all_disease:
         all_disease.remove("HC")
 
-    all_bundles = np.intersect1d(df_target.bundle.unique(),
+    data_bundles = np.intersect1d(df_target.bundle.unique(),
                                  df_moving.bundle.unique())
+    all_bundles = np.intersect1d(data_bundles, QC.bundle_names)
+
     if args.bundles is None:
-        args.bundles = ["mni_IIT_mask_skeletonFA"]
+        for b in all_bundles:
+            if "skeleton" in b:
+                args.bundles = [b]
+                break
     elif args.bundles == ["all"]:
         args.bundles = all_bundles
+
     for b in args.bundles:
         if b not in all_bundles:
             args.bundles.remove(b)
             logging.warning("Bundle %s not founded in the data.", b)
+
     if len(args.bundles) == 0:
         args.bundles = all_bundles[0:1]
         logging.warning("No valid input bundle. "
@@ -167,11 +180,6 @@ def main():
         ref_color = scale_color(ref_color, args.lightness)
         moving_color = matplotlib.colors.ColorConverter.to_rgb(curr_palette[1])
         moving_color = scale_color(moving_color, args.lightness)
-
-    # Load model parameters
-    QC = from_model_filename(args.in_model)
-    mov_site = QC.model_params["mov_site"]
-    ref_site = QC.model_params["ref_site"]
 
     if ref_site != df.site.unique()[0]:
         raise ValueError("Model site and reference data site don't match.")

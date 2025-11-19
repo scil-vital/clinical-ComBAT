@@ -4,7 +4,7 @@
 Apply a precomputed harmonization model using combat_quick_fit to a site data.
 
 Example:
-combat_quick_apply moving_site.raw.csv.gz moving_site.metric.method.model.csv.gz
+combat_quick_apply moving_site.raw.csv.gz moving_site.metric.method.model.csv
 
 
 """

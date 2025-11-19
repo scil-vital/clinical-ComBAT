@@ -241,16 +241,24 @@ def main():
     metric = df.metric.unique()[0]
 
     all_bundles = np.intersect1d(df_ref.bundle.unique(), df_moving.bundle.unique())
+
     if args.bundles is None:
+        for b in all_bundles:
+            if "skeleton" in b:
+                args.bundles = [b]
+                break
+    elif args.bundles == ["all"]:
         args.bundles = all_bundles
 
     for b in args.bundles:
         if b not in all_bundles:
             args.bundles.remove(b)
             logging.warning("Bundle %s not founded in the data.", b)
+
     if len(args.bundles) == 0:
         args.bundles = all_bundles[0:1]
-        logging.warning("No valid input bundle. Selecting bundle %s", args.bundles)
+        logging.warning("No valid input bundle. "
+                        "Selecting bundle %s", args.bundles)
 
     if args.sexes is None:
         args.sexes = list(np.unique(df.sex))

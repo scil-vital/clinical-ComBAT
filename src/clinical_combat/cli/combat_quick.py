@@ -56,7 +56,7 @@ def _build_arg_parser():
     p.add_argument("--output_model_filename",
                    default="",
                    help="Output CSV model filename. "
-                        "['ref_site-moving-site.metric_name.method.model.csv.gz']")
+                        "['ref_site-moving-site.metric_name.method.model.csv']")
 
     p.add_argument("--output_results_filename",
                    default="",
@@ -144,12 +144,18 @@ def main():
 
     all_bundles = list(ref_data.bundle.unique())
     if args.bundles is None:
+        for b in all_bundles:
+            if "skeleton" in b:
+                args.bundles = [b]
+                break
+    elif args.bundles == ["all"]:
         args.bundles = all_bundles
 
     for b in args.bundles:
         if b not in all_bundles:
             args.bundles.remove(b)
             logging.warning("Bundle %s not founded in the data.", b)
+
     if len(args.bundles) == 0:
         args.bundles = all_bundles[0:1]
         logging.warning("No valid input bundle. "
@@ -165,7 +171,7 @@ def main():
             + ref_data.metric.unique()[0]
             + "."
             + args.method
-            + ".model.csv.gz"
+            + ".model.csv"
         )
     # output data filename
     if len(args.output_results_filename) == 0:
