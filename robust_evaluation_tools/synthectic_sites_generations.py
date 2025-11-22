@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
 from clinical_combat.harmonization.QuickCombat import QuickCombat
+from robust_evaluation_tools.robust_utils import remove_covariates_effects
 
 import matplotlib.pyplot as plt
 
@@ -357,6 +358,9 @@ def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, da
             gt_metric_df = ground_truth_train[ground_truth_train['metric'] == metric]
             gt_metric_test_df = ground_truth_test[ground_truth_test['metric'] == metric]
 
+            gt_metric_df = remove_covariates_effects(gt_metric_df)
+            gt_metric_test_df = remove_covariates_effects(gt_metric_test_df)
+
             metric_train_file = os.path.join(tempDir, f"train_{sample_size}_{int(disease_ratio*100)}_{i}_{metric}.csv")
             metric_df.to_csv(metric_train_file, index=False)
 
@@ -396,10 +400,11 @@ def process_test(sample_size, disease_ratio, i, train_df, test_df, directory, da
             f"scripts/combat_visualize_data.py {data_path} {temp_test_file} --out_dir {os.path.join(tempDir, 'VIZ_TEST')} -f",
             shell=True)
 
-def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path, SYNTHETIC_SITES_VERSION='v1', disease=None, fixed_biais=False, n_jobs=-1):
+def generate_sites(sample_sizes, disease_ratios, num_tests, directory, data_path, SYNTHETIC_SITES_VERSION='v1', camcan_hc_only=True, disease=None, fixed_biais=False, n_jobs=-1):
     df = pd.read_csv(data_path)
     df = df[~df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
-    df = df[~((df['disease'] == 'HC') & (df['old_site'] != 'CamCAN'))]
+    if camcan_hc_only:
+        df = df[~((df['disease'] == 'HC') & (df['old_site'] != 'CamCAN'))]
     if disease == "ASTMIX":
         df = df[df['disease'].isin(['AD', 'SCHZ', 'TBI', 'HC'])]
     elif disease is not None and disease != "ALL":

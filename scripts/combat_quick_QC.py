@@ -186,6 +186,7 @@ def main():
         )
     else:
         output_filename = os.path.join(args.out_dir, args.output_results_filename)
+    os.makedirs(args.out_dir, exist_ok=True)
 
     print(
         "      Mean Bhattacharrya distance: %f (min: %f, max: %f)"

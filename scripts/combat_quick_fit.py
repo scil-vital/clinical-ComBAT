@@ -125,7 +125,7 @@ def _build_arg_parser():
     )
     p.add_argument(
         "--robust",
-        default="MLP4_ALL_5",
+        default="No",
         help="If set, use combat robust. This tries "
         + "identifying/rejecting non-HC subjects.",
     )
@@ -264,7 +264,6 @@ def main():
         gmm_max_iter=args.gmm_max_iter,
     )
 
-    print("Removing outliers... with method:", args.robust)
     if args.robust != 'No':
 
         mov_data = remove_outliers(ref_data, mov_data, args)

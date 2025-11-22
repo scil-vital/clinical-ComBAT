@@ -160,6 +160,47 @@ def z_score_detection(df,
 
     return mean_z.astype({"prob_outlier": float})
 
+def mad_detection(df,
+                  mean_col: str = "mean_no_cov") -> pd.DataFrame:
+    """
+    Calcule la moyenne du |MAD-score| par patient et retourne un DataFrame
+    `sid` / `prob_outlier`, où `prob_outlier` correspond au score continu.
+
+    Le MAD-score est défini comme |x - median| / MAD, avec un facteur 1.4826
+    pour rendre le MAD comparable à l'écart-type sous une distribution normale.
+    """
+
+    # 1) Stats globales par bundle, basé sur la médiane et le MAD
+    stats = df.groupby("metric_bundle")[mean_col].agg(['median'])
+    stats = stats.rename(columns={'median': 'global_median'})
+
+    # Calcul du MAD: median(|x - median|)
+    mad_values = (
+        df.groupby("metric_bundle")[mean_col]
+          .apply(lambda x: (x - x.median()).abs().median())
+          .rename("mad_raw")
+    )
+
+    stats = stats.join(mad_values)
+
+    # Correction 1.4826 pour être équivalent à sigma si normal
+    stats["mad"] = stats["mad_raw"] * 1.4826
+    stats["mad"] = stats["mad"].replace(0, 1e-6)
+
+    # 2) Merge dans le DF
+    df_mad = df.merge(stats[["global_median", "mad"]], on="metric_bundle", how="left")
+
+    # 3) MAD-score absolu
+    df_mad["abs_madscore"] = ((df_mad[mean_col] - df_mad["global_median"]).abs()
+                               / df_mad["mad"])
+
+    # 4) Moyenne par patient
+    mean_mad = (df_mad.groupby("sid", as_index=False)
+                       .agg(prob_outlier=("abs_madscore", "mean")))
+
+    return mean_mad.astype({"prob_outlier": float})
+
+
 
 
 def flag_sid(df, sids, method):

@@ -194,9 +194,21 @@ def show_scatter_plot(df, column, bundle):
     plt.show()
 
 
-def get_camcan_file(metric):
-    compilation_folder = os.path.join('DONNES_F', 'CamCAN')
-    return os.path.join(compilation_folder, f"CamCAN.{metric}.raw.csv.gz")
+def get_camcan_file(metric, cleaned=False):
+    """
+    Return path to CamCAN file for a metric.
+
+    Args:
+        metric: CamCAN metric name (e.g., 'fa', 'mdt').
+        cleaned: If True, return path to cleaned CamCAN export; otherwise raw.
+    """
+    base_dir = (
+        os.path.join("DONNES", "processed", "CamCAN_clean")
+        if cleaned
+        else os.path.join("DONNES", "raw_CAMCAN")
+    )
+    suffix = "clean" if cleaned else "raw"
+    return os.path.join(base_dir, f"CamCAN.{metric}.{suffix}.csv.gz")
 
 def remove_covariates_effects_metrics(df):
     if 'mean_no_cov' in df.columns:
@@ -207,4 +219,3 @@ def remove_covariates_effects_metrics(df):
         df_metrics = remove_covariates_effects(df_metrics)
         total = pd.concat([total, df_metrics], ignore_index=True)
     return total
-

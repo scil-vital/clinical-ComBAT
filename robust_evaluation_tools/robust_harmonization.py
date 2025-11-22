@@ -6,12 +6,13 @@ import re
 
 from scripts import combat_quick_apply
 from scripts import combat_quick_QC
-from robust_evaluation_tools.robust_utils import get_site, robust_text, rwp_text
+from robust_evaluation_tools.robust_utils import get_site, robust_text, rwp_text, remove_covariates_effects
 
 from pptx import Presentation
 from pptx.util import Inches
 
-def get_output_model_filename(mov_data_file, metric, harmonizartion_method, robust, rwp):
+def get_output_model_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, robust_label=None):
+        label = robust if robust_label is None else robust_label
         return (
             get_site(mov_data_file)
             + "."
@@ -19,13 +20,14 @@ def get_output_model_filename(mov_data_file, metric, harmonizartion_method, robu
             + "."
             + harmonizartion_method
             + "."
-            + robust_text(robust)
+            + robust_text(label)
             + "."
             + rwp_text(rwp)
             + ".model.csv"
         )
 
-def get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory):
+def get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory, robust_label=None):
+        label = robust if robust_label is None else robust_label
         site = get_site(mov_data_file)
         if "test" in mov_data_file:
             site += "_test"
@@ -37,21 +39,22 @@ def get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rw
             + "."
             + harmonizartion_method
             + "."
-            + robust_text(robust)
+            + robust_text(label)
             + "."
             + rwp_text(rwp)
             + ".csv"
         )
 
-def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp, directory, hc,):
+def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp, directory, hc, robust_label=None, robust_threshold=None):
     ###########
     ### fit ###
     ###########
     
+    label = robust if robust_label is None else robust_label
     output_model_filename = get_output_model_filename(
-        mov_data_file, metric, harmonizartion_method, robust, rwp
+        mov_data_file, metric, harmonizartion_method, robust, rwp, robust_label=label
     )
-        # Check if the output model file already exists
+    # Check if the output model file already exists
     output_model_path = os.path.join(directory, output_model_filename)
     if os.path.exists(output_model_path):
         return output_model_path
@@ -76,12 +79,15 @@ def fit(mov_data_file, ref_data_file, metric, harmonizartion_method, robust, rwp
         cmd += ' --rwp'
     if hc: 
         cmd += ' --hc'
+    if robust_threshold is not None:
+        cmd += f" --robust-threshold {robust_threshold}"
 
     subprocess.call(cmd, shell=True)
     return output_model_path
 
-def apply(mov_data_file, model_filename, metric, harmonizartion_method, robust, rwp, directory):
-    output_filename = get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory)
+def apply(mov_data_file, model_filename, metric, harmonizartion_method, robust, rwp, directory, robust_label=None):
+    label = robust if robust_label is None else robust_label
+    output_filename = get_output_filename(mov_data_file, metric, harmonizartion_method, robust, rwp, directory, robust_label=label)
     if os.path.exists(output_filename):
         return output_filename
     combat_quick_apply.apply(mov_data_file, model_filename, output_filename)

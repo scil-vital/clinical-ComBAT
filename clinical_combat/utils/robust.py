@@ -57,7 +57,7 @@ def remove_outliers(ref_data, mov_data, args):
 
     # Find outliers
     outliers_idx = []
-    if args.robust in ['Z_SCORE_METRIC']:
+    if args.robust in ['M_ZS']:
         outliers_idx += find_outlier(mov_data, threshold=threshold)
     else:
         for bundle in QC.bundle_names:
@@ -384,12 +384,12 @@ def cheat(data):
     return data[data['disease'] != 'HC'].index.to_list()
 
 def zscore_IQR(data):
-    zs = flagged(data, method='Z_SCORE')
+    zs = flagged(data, method='G_ZS')
     iqr = find_outliers_IQR(data)
     return list(set(zs) | set(iqr))
 
 def zscore_MAD(data):
-    zs = flagged(data, method='Z_SCORE')
+    zs = flagged(data, method='G_ZS')
     mad = find_outliers_MAD(data)
     return list(set(zs) | set(mad))
 
@@ -588,17 +588,19 @@ ROBUST_METHODS = {
     "MMS": _make_threshold_wrapper(reject_outliers_until_mad_equals_mean, default=0.001),
     "VS": _make_threshold_wrapper(find_outliers_VS, default=None),
     "VS2": _make_threshold_wrapper(find_outliers_VS2, default=None),
-    "Z_SCORE": _make_flagged_wrapper("Z_SCORE", default_threshold=1.0),
-    "Z_SCORE_IQR": _make_threshold_wrapper(zscore_IQR, default=None),
-    "Z_SCORE_MAD": _make_threshold_wrapper(zscore_MAD, default=None),
-    "Z_SCORE_BUNDLE": _make_threshold_wrapper(find_outliers_ZSCORE_BUNDLE, default=3.0),
-    "Z_SCORE_METRIC": _make_threshold_wrapper(find_outliers_ZSCORE_METRIC, default=3.0),
+    "G_ZS": _make_flagged_wrapper("G_ZS", default_threshold=1.0),
+    "G_MAD": _make_flagged_wrapper("G_MAD", default_threshold=1.0),
+    "G_ZS_IQR": _make_threshold_wrapper(zscore_IQR, default=None),
+    "G_ZS_MAD": _make_threshold_wrapper(zscore_MAD, default=None),
+    "ZS": _make_threshold_wrapper(find_outliers_ZSCORE_BUNDLE, default=3.0),
+    "M_ZS": _make_threshold_wrapper(find_outliers_ZSCORE_METRIC, default=3.0),
     "CHEAT": _make_threshold_wrapper(cheat, default=None),
     "FLIP": _make_threshold_wrapper(rien, default=None),
     "MLP_ALL": _make_flagged_wrapper("MLP_ALL", default_threshold=0.5),
     "MLP2_ALL": _make_flagged_wrapper("MLP2_ALL", default_threshold=0.5),
     "MLP3_ALL": _make_flagged_wrapper("MLP3_ALL", default_threshold=0.5),
     "MLP4_ALL_5": _make_flagged_wrapper("MLP4_ALL_5", default_threshold=0.5),
+    "MLP7_ALL": _make_flagged_wrapper("MLP7_ALL", default_threshold=0.6),
 }
 
 

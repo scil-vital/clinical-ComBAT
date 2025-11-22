@@ -1,0 +1,1568 @@
+
+==== CELL 0 (markdown) ===
+## IMPORTS and UTILS
+
+==== CELL 1 (code) ===
+print("hi")
+
+import os, math
+import pandas as pd
+import subprocess
+import re
+import numpy as np
+import json
+import csv
+
+from joblib import Parallel, delayed
+
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import random
+
+
+import os
+
+from scripts import combat_info
+from scripts import combat_quick_apply
+from scripts import combat_quick_QC
+from robust_evaluation_tools.robust_utils import get_site, robust_text, rwp_text, get_camcan_file, get_diseases, get_metrics, add_nb_patients_and_diseased, remove_covariates_effects_metrics
+from robust_evaluation_tools.robust_harmonization import fit, apply, visualize_harmonization, QC, compare_with_compilation, compare_with_compilation_SMAPE, compare_with_compilation_STD, create_presentation, compare_distances, compare_with_compilation_var
+from robust_evaluation_tools.synthectic_sites_generations import generate_sites
+from robust_evaluation_tools.robust_outlier_detection import z_score_detection, flag_sid
+from robust_evaluation_tools.robust_MLP import predict_malades_MLP
+
+MAINFOLDER = "RESULTS/MAE_TEST"
+SYNTHETIC_SITES = f"{MAINFOLDER}/SYNTHETIC_SITES"
+
+ANALYSIS_FOLDER = f"{MAINFOLDER}/ANALYSIS"
+
+robust_methods_for_analysis = ["No","raw", "IQR",'MAD','MMS', 'VS', 'VS2', 'FLIP', 'G_ZS', "G_ZS_IQR", "G_ZS_MAD"]
+
+SMAPE_ONLY = False
+
+==== CELL 2 (markdown) ===
+## HARMONIZATION
+
+==== CELL 3 (code) ===
+def harmonize(f_train, ref_data_file, metric,harmonizartion_method, f_test, directory, method, robust, rwp,hc, gt_train_file_name, gt_test_file_name):
+     
+    if method == 'robust':
+        dir =os.path.join(directory,robust)
+    else:
+        dir = os.path.join(directory,method)
+    print(f_train)
+    
+    if robust == 'raw':
+        output_filename_train = f_train
+        output_filename_test = f_test
+    else:
+        # Fit the model
+        output_model_filename = fit(f_train, ref_data_file, metric, harmonizartion_method, robust, rwp, dir, hc,)
+        # Apply the model
+        output_filename_train = apply(f_train, output_model_filename, metric, harmonizartion_method, robust, rwp, dir)
+        output_filename_test = apply(f_test, output_model_filename, metric, harmonizartion_method, robust, rwp, dir)
+    
+    # Visualize the harmonization
+    #visualize_harmonization(f_test, output_filename, ref_data_file, dir, bundles = '')
+    
+    std_mae_train = compare_with_compilation_STD(pd.read_csv(output_filename_train), pd.read_csv(gt_train_file_name))
+    std_mae_test = compare_with_compilation_STD(pd.read_csv(output_filename_test), pd.read_csv(gt_test_file_name))
+
+    if not SMAPE_ONLY:
+        smape_test = compare_with_compilation_SMAPE(pd.read_csv(output_filename_test), pd.read_csv(gt_test_file_name))
+        smape_train = compare_with_compilation_SMAPE(pd.read_csv(output_filename_train), pd.read_csv(gt_train_file_name))
+        
+        mae_test = compare_with_compilation(pd.read_csv(output_filename_test), pd.read_csv(gt_test_file_name))
+        maev_test = compare_with_compilation_var(pd.read_csv(output_filename_test), pd.read_csv(gt_test_file_name))
+
+        mae_train = compare_with_compilation(pd.read_csv(output_filename_train), pd.read_csv(gt_train_file_name))
+        maev_train = compare_with_compilation_var(pd.read_csv(output_filename_train), pd.read_csv(gt_train_file_name))
+    else:
+        mae_test = pd.DataFrame()
+        maev_test = pd.DataFrame()
+        mae_train = pd.DataFrame()
+        maev_train = pd.DataFrame()
+        smape_test = pd.DataFrame()
+        smape_train = pd.DataFrame()
+
+
+    mae_test['site'] = get_site(f_train)
+    mae_test['method'] = method
+    mae_test['robust_method'] = robust
+
+    maev_test['site'] = get_site(f_train)
+    maev_test['method'] = method
+    maev_test['robust_method'] = robust
+
+    mae_train['site'] = get_site(f_train)
+    mae_train['method'] = method
+    mae_train['robust_method'] = robust
+
+    maev_train['site'] = get_site(f_train)
+    maev_train['method'] = method
+    maev_train['robust_method'] = robust
+
+    smape_test['site'] = get_site(f_train)
+    smape_test['method'] = method
+    smape_test['robust_method'] = robust
+
+    smape_train['site'] = get_site(f_train)
+    smape_train['method'] = method
+    smape_train['robust_method'] = robust
+
+    std_mae_train['site'] = get_site(f_train)
+    std_mae_train['method'] = method
+    std_mae_train['robust_method'] = robust
+
+    std_mae_test['site'] = get_site(f_train)
+    std_mae_test['method'] = method
+    std_mae_test['robust_method'] = robust
+    
+    return mae_test, maev_test, mae_train, maev_train, smape_test, smape_train, std_mae_test, std_mae_train
+
+==== CELL 4 (code) ===
+def analyse_site(f_train, f_test, robust_methods, directory, ref_data_file,
+                 metric, harmonizartion_method, gt_train_file_name, gt_test_file_name):
+    # Accumulateurs
+    df_mae_test_robust   = pd.DataFrame()
+    df_maev_test_robust  = pd.DataFrame()
+    df_mae_train_robust  = pd.DataFrame()
+    df_maev_train_robust = pd.DataFrame()
+    df_smape_test_robust = pd.DataFrame()
+    df_smape_train_robust = pd.DataFrame()
+    df_std_mae_test_robust = pd.DataFrame()
+    df_std_mae_train_robust = pd.DataFrame()
+
+    for robust in robust_methods:
+        if robust == "raw":
+            (mae_test, maev_test, mae_train, maev_train,
+             smape_test, smape_train, std_mae_test, std_mae_train) = harmonize(
+                 f_train, ref_data_file, metric, harmonizartion_method,
+                 f_test, directory, "raw", "raw", False, False, gt_train_file_name, gt_test_file_name)
+
+        elif robust == "No":
+            # hc‑only
+            (mae_test_hc, maev_test_hc, mae_train_hc, maev_train_hc,
+             smape_test_hc, smape_train_hc, std_mae_test_hc, std_mae_train_hc) = harmonize(
+                 f_train, ref_data_file, metric, harmonizartion_method,
+                 f_test, directory, "hc", "No", False, True, gt_train_file_name, gt_test_file_name)
+            # NoRobust
+            (mae_test_no, maev_test_no, mae_train_no, maev_train_no,
+             smape_test_no, smape_train_no, std_mae_test_no, std_mae_train_no) = harmonize(
+                 f_train, ref_data_file, metric, harmonizartion_method,
+                 f_test, directory, "NoRobust", "No", False, False, gt_train_file_name, gt_test_file_name)
+
+            mae_test   = pd.concat([mae_test_no,   mae_test_hc],   ignore_index=True)
+            maev_test  = pd.concat([maev_test_no,  maev_test_hc],  ignore_index=True)
+            mae_train  = pd.concat([mae_train_no,  mae_train_hc],  ignore_index=True)
+            maev_train = pd.concat([maev_train_no, maev_train_hc], ignore_index=True)
+            smape_test = pd.concat([smape_test_no, smape_test_hc], ignore_index=True)
+            smape_train = pd.concat([smape_train_no, smape_train_hc], ignore_index=True)
+            std_mae_test = pd.concat([std_mae_test_no, std_mae_test_hc], ignore_index=True)
+            std_mae_train = pd.concat([std_mae_train_no, std_mae_train_hc], ignore_index=True)
+
+        else:
+            (mae_test, maev_test, mae_train, maev_train,
+             smape_test, smape_train, std_mae_test, std_mae_train) = harmonize(
+                 f_train, ref_data_file, metric, harmonizartion_method,
+                 f_test, directory, "robust", robust, False, False, gt_train_file_name, gt_test_file_name)
+
+        # Empile tout
+        df_mae_test_robust   = pd.concat([df_mae_test_robust,   mae_test],   ignore_index=True)
+        df_maev_test_robust  = pd.concat([df_maev_test_robust,  maev_test],  ignore_index=True)
+        df_mae_train_robust  = pd.concat([df_mae_train_robust,  mae_train],  ignore_index=True)
+        df_maev_train_robust = pd.concat([df_maev_train_robust, maev_train], ignore_index=True)
+        df_smape_test_robust = pd.concat([df_smape_test_robust, smape_test], ignore_index=True)
+        df_smape_train_robust = pd.concat([df_smape_train_robust, smape_train], ignore_index=True)
+        df_std_mae_test_robust = pd.concat([df_std_mae_test_robust, std_mae_test], ignore_index=True)
+        df_std_mae_train_robust = pd.concat([df_std_mae_train_robust, std_mae_train], ignore_index=True)
+
+    return (df_mae_test_robust, df_maev_test_robust,
+            df_mae_train_robust, df_maev_train_robust,
+            df_smape_test_robust, df_smape_train_robust,
+            df_std_mae_test_robust, df_std_mae_train_robust)
+
+==== CELL 5 (code) ===
+def process_analysis(disease, sample_size, disease_ratio, test_index,
+                     harmonization_method, SYNTHETIC_SITES_VERSION,
+                     metrics, robust_methods):
+    
+    # Définition des chemins
+    sizeDir = os.path.join(MAINFOLDER, f'PROCESS_{harmonization_method}', disease,
+                           f"{sample_size}_{int(disease_ratio * 100)}",
+                           f"{test_index}")
+    mae_test_file_path  = os.path.join(sizeDir, "mae_compilation_test.csv")
+    maev_test_file_path = os.path.join(sizeDir, "maev_compilation_test.csv")
+    mae_train_file_path = os.path.join(sizeDir, "mae_compilation_train.csv")
+    maev_train_file_path= os.path.join(sizeDir, "maev_compilation_train.csv")
+    smape_test_file_path = os.path.join(sizeDir, "smape_compilation_test.csv")
+    smape_train_file_path= os.path.join(sizeDir, "smape_compilation_train.csv")
+    std_mae_train_file_path = os.path.join(sizeDir, "std_mae_compilation_train.csv")
+    std_mae_test_file_path = os.path.join(sizeDir, "std_mae_compilation_test.csv")
+
+    # Chargement existant (ou vide)
+    def _load_if_exists(path):
+        return pd.read_csv(path) if os.path.isfile(path) else pd.DataFrame()
+
+    mae_compilation_test  = _load_if_exists(mae_test_file_path)
+    maev_compilation_test = _load_if_exists(maev_test_file_path)
+    mae_compilation_train = _load_if_exists(mae_train_file_path)
+    maev_compilation_train= _load_if_exists(maev_train_file_path)
+    smape_compilation_test = _load_if_exists(smape_test_file_path)
+    smape_compilation_train = _load_if_exists(smape_train_file_path)
+    std_mae_compilation_train = _load_if_exists(std_mae_train_file_path)
+    std_mae_compilation_test = _load_if_exists(std_mae_test_file_path)
+
+
+    robust_methods = ["No","raw"] + robust_methods
+    # 💡 Vérification une seule fois au début : est-ce que certaines méthodes sont déjà présentes ?
+    if not std_mae_compilation_test.empty:
+        existing_methods = set(std_mae_compilation_test['robust_method'].unique())
+        missing_methods = [m for m in robust_methods if m not in existing_methods]
+
+        if not missing_methods:
+            print(f"✔️ Toutes les méthodes déjà traitées pour {disease} {sample_size}_{int(disease_ratio*100)} test_index {test_index}.")
+            return (mae_test_file_path, maev_test_file_path,
+                    mae_train_file_path, maev_train_file_path,
+                    smape_test_file_path, smape_train_file_path,
+                    std_mae_test_file_path, std_mae_train_file_path
+                    )
+        
+        # ⬇️ on ne garde que les méthodes manquantes
+        robust_methods = missing_methods
+
+    # Si on est ici, c’est qu’il reste des méthodes à faire
+    directory_site = os.path.join(SYNTHETIC_SITES, SYNTHETIC_SITES_VERSION, disease)
+    sizeDir_site   = os.path.join(directory_site, f"{sample_size}_{int(disease_ratio * 100)}")
+    tempDir_site   = os.path.join(sizeDir_site, f"{test_index}")
+
+    df_for_tags = pd.read_csv(os.path.join(tempDir_site, f"train_{sample_size}_{int(disease_ratio * 100)}_{test_index}_all.csv"))
+    df_for_tags = df_for_tags[~df_for_tags['bundle'].isin(['left_ventricle', 'right_ventricle'])]
+    df_for_tags = remove_covariates_effects_metrics(df_for_tags)
+
+    z_score_sids = z_score_detection(df_for_tags)
+    
+    
+        # — 1) Prépare les prédictions une seule fois —
+    thresholds = [0.5, 0.6, 0.9, 0.95, 0.99]
+    models     = ["mlp2_ALL", "mlp3_ALL", "mlp4_ALL"]          # ajoute-en d’autres au besoin
+
+    preds = {f"{m.upper()}_{str(int(t*100)).rstrip('0')}": predict_malades_MLP(df_for_tags, m, threshold=t)
+         for m in models for t in thresholds}
+
+
+
+    for metric in metrics:
+        tempDir = os.path.join(sizeDir, metric)
+        os.makedirs(tempDir, exist_ok=True)
+
+        # Préparation fichiers train/test
+        train_file_name = f"train_{sample_size}_{int(disease_ratio * 100)}_{test_index}_{metric}.csv"
+        test_file_name  = f"test_{sample_size}_{int(disease_ratio * 100)}_{test_index}_{metric}.csv"
+        gt_train_file_name = os.path.join(tempDir_site,f"gt_train_{sample_size}_{int(disease_ratio * 100)}_{test_index}_{metric}.csv")
+        gt_test_file_name  = os.path.join(tempDir_site,f"gt_test_{sample_size}_{int(disease_ratio * 100)}_{test_index}_{metric}.csv")
+
+        train_file = os.path.join(tempDir_site, train_file_name)
+        train_df = pd.read_csv(train_file)
+        train_df = train_df[~train_df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
+        train_df = train_df.drop(columns=['mean_no_cov', 'metric_bundle'])
+        train_df = flag_sid(train_df, z_score_sids, "G_ZS")
+        for label, sid_list in preds.items():
+            train_df = flag_sid(train_df, sid_list, label)
+
+
+        train_df["site"] = disease + "_" + train_df["site"]
+        new_train_file = os.path.join(tempDir, train_file_name)
+        train_df.to_csv(new_train_file, index=False)
+
+        test_file = os.path.join(tempDir_site, test_file_name)
+        test_df = pd.read_csv(test_file)
+        test_df = test_df[~test_df['bundle'].isin(['left_ventricle', 'right_ventricle'])]
+        test_df = test_df.drop(columns=['mean_no_cov', 'metric_bundle'])
+        test_df["site"] = train_df["site"]
+        new_test_file = os.path.join(tempDir, test_file_name)
+        test_df.to_csv(new_test_file, index=False)
+
+        ref_data_file = get_camcan_file(metric)
+
+        # Lancement de l’analyse pour toutes les méthodes manquantes
+        mae_analyze_test, maev_analyze_test, mae_analyze_train, maev_analyze_train, \
+        smape_analyze_test, smape_analyze_train, std_mae_analyze_test, std_mae_analyze_train = analyse_site(
+            new_train_file, new_test_file, robust_methods, tempDir,
+            ref_data_file, metric, harmonization_method, gt_train_file_name, gt_test_file_name
+        )
+
+        # Ajout des infos
+        for df in [mae_analyze_test, maev_analyze_test, mae_analyze_train, maev_analyze_train, smape_analyze_test, smape_analyze_train, std_mae_analyze_test, std_mae_analyze_train]:
+            df['disease'] = disease
+            df['metric']  = metric
+
+        std_mae_compilation_test = pd.concat([std_mae_compilation_test, std_mae_analyze_test],
+                                                ignore_index=True).drop_duplicates()
+        std_mae_compilation_train = pd.concat([std_mae_compilation_train, std_mae_analyze_train],
+                                                ignore_index=True).drop_duplicates()
+        if not SMAPE_ONLY: 
+            mae_compilation_test = pd.concat([mae_compilation_test, mae_analyze_test],
+                                            ignore_index=True).drop_duplicates()
+            maev_compilation_test = pd.concat([maev_compilation_test, maev_analyze_test],
+                                            ignore_index=True).drop_duplicates()
+            mae_compilation_train = pd.concat([mae_compilation_train, mae_analyze_train],
+                                            ignore_index=True).drop_duplicates()
+            maev_compilation_train = pd.concat([maev_compilation_train, maev_analyze_train],
+                                            ignore_index=True).drop_duplicates()
+            smape_compilation_test = pd.concat([smape_compilation_test, smape_analyze_test],
+                                            ignore_index=True).drop_duplicates()
+            smape_compilation_train = pd.concat([smape_compilation_train, smape_analyze_train],
+                                                ignore_index=True).drop_duplicates()
+            
+            
+        
+
+    # Sauvegarde finale
+    os.makedirs(sizeDir, exist_ok=True)
+    std_mae_compilation_test.to_csv(std_mae_test_file_path, index=False)
+    std_mae_compilation_train.to_csv(std_mae_train_file_path, index=False)
+    if not SMAPE_ONLY:
+        mae_compilation_test.to_csv(mae_test_file_path, index=False)
+        maev_compilation_test.to_csv(maev_test_file_path, index=False)
+        mae_compilation_train.to_csv(mae_train_file_path, index=False)
+        maev_compilation_train.to_csv(maev_train_file_path, index=False)
+        smape_compilation_test.to_csv(smape_test_file_path, index=False)
+        smape_compilation_train.to_csv(smape_train_file_path, index=False)
+        
+
+    return (mae_test_file_path, maev_test_file_path,
+            mae_train_file_path, maev_train_file_path,
+            smape_test_file_path, smape_train_file_path,
+            std_mae_test_file_path, std_mae_train_file_path)
+
+# Parallelized analysis method (excluding num_tests from parallelization)
+def analyse_method(sample_sizes, disease_ratios, num_tests, robust_methods,diseases, metrics, harmonization_method, SYNTHETIC_SITES_VERSION, n_jobs=-1):
+    # Generate all task combinations (excluding num_tests)
+    tasks = [
+        (disease, sample_size, disease_ratio, num_test, harmonization_method, SYNTHETIC_SITES_VERSION, metrics, robust_methods)
+        for disease in diseases
+        for sample_size in sample_sizes
+        for disease_ratio in disease_ratios
+        for num_test in range(num_tests)
+    ]
+
+    # Run all combinations in parallel and collect file paths
+    results = Parallel(n_jobs=n_jobs)(delayed(process_analysis)(*task) for task in tasks)
+
+    # Separate the list of tuples into four lists of file paths
+    mae_test_file_paths = [res[0] for res in results]
+    maev_test_file_paths = [res[1] for res in results]
+    mae_train_file_paths = [res[2] for res in results]
+    maev_train_file_paths = [res[3] for res in results]
+    smape_test_file_paths = [res[4] for res in results]
+    smape_train_file_paths = [res[5] for res in results]
+    std_mae_test_file_paths = [res[6] for res in results]
+    std_mae_train_file_paths = [res[7] for res in results]
+
+    # Concatenate all mae compilations for test datasets
+    mae_compilation_test_global = pd.concat(
+        [pd.read_csv(fpath) for fpath in mae_test_file_paths],
+        ignore_index=True
+    )
+
+    # Concatenate all maev compilations for test datasets
+    maev_compilation_test_global = pd.concat(
+        [pd.read_csv(fpath) for fpath in maev_test_file_paths],
+        ignore_index=True
+    )
+
+    # Concatenate all mae compilations for train datasets
+    mae_compilation_train_global = pd.concat(
+        [pd.read_csv(fpath) for fpath in mae_train_file_paths],
+        ignore_index=True
+    )
+
+    # Concatenate all maev compilations for train datasets
+    maev_compilation_train_global = pd.concat(
+        [pd.read_csv(fpath) for fpath in maev_train_file_paths],
+        ignore_index=True
+    )
+
+    smape_compilation_test_global = pd.concat(
+        [pd.read_csv(fpath) for fpath in smape_test_file_paths],
+        ignore_index=True
+    )
+    smape_compilation_train_global = pd.concat(
+        [pd.read_csv(fpath) for fpath in smape_train_file_paths],
+        ignore_index=True
+    )
+
+    # Final save of the four compiled DataFrames
+    directory = os.path.join(MAINFOLDER)
+    os.makedirs(directory, exist_ok=True)
+
+    mae_compilation_test_global.to_csv(os.path.join(directory, "mae_compilation_test_global.csv"), index=False)
+    maev_compilation_test_global.to_csv(os.path.join(directory, "maev_compilation_test_global.csv"), index=False)
+    mae_compilation_train_global.to_csv(os.path.join(directory, "mae_compilation_train_global.csv"), index=False)
+    maev_compilation_train_global.to_csv(os.path.join(directory, "maev_compilation_train_global.csv"), index=False)
+    smape_compilation_test_global.to_csv(os.path.join(directory, "smape_compilation_test_global.csv"), index=False)
+    smape_compilation_train_global.to_csv(os.path.join(directory, "smape_compilation_train_global.csv"), index=False)   
+    
+
+==== CELL 6 (code) ===
+def generate_sites_for_disease(disease, SYNTHETIC_SITES, SYNTHETIC_SITES_VERSION, sample_sizes, disease_ratios, num_tests, fixed_biais, n_jobs=-1):
+    # Load data for the disease
+    # data_path = os.path.join('DONNES_F','COMPILATIONS_AUG_3', f'{disease}_combination_all_metrics_CamCAN.csv.gz')
+    data_path = os.path.join('DONNES_MLP/evalutation_data_all_aug5.csv')
+    # Define site directory
+    directory_site = os.path.join(SYNTHETIC_SITES, SYNTHETIC_SITES_VERSION, disease)
+
+    # Generate synthetic sites
+    generate_sites(sample_sizes, disease_ratios, num_tests, directory_site, data_path, SYNTHETIC_SITES_VERSION, disease=disease,fixed_biais=fixed_biais, n_jobs=n_jobs )
+
+==== CELL 7 (markdown) ===
+## EXECUTOR
+
+==== CELL 8 (code) ===
+
+
+==== CELL 9 (code) ===
+harmonization_method= "gmm"
+
+SYNTHETIC_SITES_VERSION = "v1"
+
+metrics = get_metrics()
+#diseases = get_diseases(True)
+diseases = ["ALL"]
+robust_methods = [
+                "MLP3_ALL_5",
+                ]
+
+sample_sizes = [5,10,20,30,100,150]  # Différentes tailles d'échantillon
+sample_sizes = [30,100,150]  # Différentes tailles d'échantillon
+sample_sizes = [100]  # Différentes tailles d'échantillon
+disease_ratios = [0.03, 0.1, 0.3, 0.5, 0.7, 0.8]  # Différents pourcentages de malades
+num_tests = 20  # Nombre de tests à effectuer pour chaque combinaison
+n_jobs_number=-1
+fixed_biais=True
+
+# for disease in diseases:
+#     generate_sites_for_disease(
+#         disease, SYNTHETIC_SITES, SYNTHETIC_SITES_VERSION, sample_sizes, disease_ratios, num_tests, fixed_biais, n_jobs_number
+#     )
+
+==== CELL 10 (code) ===
+harmonization_method= "gmm2"
+analyse_method(sample_sizes, disease_ratios, num_tests, robust_methods,diseases, metrics, harmonization_method, SYNTHETIC_SITES_VERSION, n_jobs=n_jobs_number)
+
+==== CELL 11 (code) ===
+def load_mae_or_maev_compilations(mainfolder, diseases, sample_sizes, disease_ratios, num_tests, mae_or_maev='mae'):
+    tests, trains = [], []
+    for d in diseases:
+        for s in sample_sizes:
+            for r in disease_ratios:
+                for i in range(num_tests):
+                    base = os.path.join(mainfolder, f'PROCESS_{harmonization_method}', d, f"{s}_{int(r*100)}", str(i))
+                    test_path  = os.path.join(base, f"{mae_or_maev}_compilation_test.csv")
+                    train_path = os.path.join(base, f"{mae_or_maev}_compilation_train.csv")
+                    if os.path.isfile(test_path):
+                        tests.append(pd.read_csv(test_path))
+                    if os.path.isfile(train_path):
+                        trains.append(pd.read_csv(train_path))
+    df_test  = pd.concat(tests,  ignore_index=True) if tests  else pd.DataFrame()
+    df_train = pd.concat(trains, ignore_index=True) if trains else pd.DataFrame()
+    return df_test, df_train
+
+==== CELL 12 (code) ===
+def load_compilation(mae_or_maev: str,
+                     split: str,
+                     *,
+                     mainfolder: str,
+                     diseases: list[str],
+                     sample_sizes: list[int],
+                     disease_ratios: list[int],
+                     num_tests: int) -> pd.DataFrame:
+    if mae_or_maev not in {"mae", "maev"}:
+        raise ValueError("mae_or_maev doit être 'mae' ou 'maev'")
+    if split not in {"test", "train"}:
+        raise ValueError("split doit être 'test' ou 'train'")
+
+    df_test, df_train = load_mae_or_maev_compilations(
+        mainfolder,
+        diseases,
+        sample_sizes,
+        disease_ratios,
+        num_tests,
+        mae_or_maev=mae_or_maev
+    )
+    return df_test if split == "test" else df_train
+
+==== CELL 13 (code) ===
+mae_compilation_train_all = load_compilation("mae", "train",
+                      mainfolder=MAINFOLDER,
+                      diseases=diseases,
+                      sample_sizes=sample_sizes,
+                      disease_ratios=disease_ratios,
+                      num_tests=num_tests)
+mae_compilation_test_all = load_compilation("mae", "test",
+                      mainfolder=MAINFOLDER,
+                      diseases=diseases,
+                      sample_sizes=sample_sizes,
+                      disease_ratios=disease_ratios,
+                      num_tests=num_tests)
+maev_compilation_train_all = load_compilation("maev", "train",
+                      mainfolder=MAINFOLDER,
+                      diseases=diseases,
+                      sample_sizes=sample_sizes,
+                      disease_ratios=disease_ratios,
+                      num_tests=num_tests)
+maev_compilation_test_all = load_compilation("maev", "test",
+                      mainfolder=MAINFOLDER,
+                      diseases=diseases,
+                      sample_sizes=sample_sizes,
+                      disease_ratios=disease_ratios,
+                      num_tests=num_tests)
+
+==== CELL 14 (markdown) ===
+## ANALYSIS FUNCTIONS
+
+==== CELL 15 (code) ===
+# Mean std
+
+def plot_mea_mean_std(df, sample_size, disease, metric, directory, dataset_type):
+    # Dossier de sortie
+    directory = os.path.join(directory, "MAE_PLOTS_MEAN", disease, metric,
+                             str(sample_size), dataset_type, "ALL_BUNDLES")
+    os.makedirs(directory, exist_ok=True)
+
+    # Filtre
+    df_filtered = df[
+        (df['num_patients'] == sample_size) &
+        (df['disease'] == disease) &
+        (df['metric'] == metric)
+    ].copy()
+
+    # Méthodes robustes
+    robust_methods = [m for m in df_filtered['robust_method'].dropna().unique()
+                      if m not in ["No", "raw"]]
+
+    base_methods = ["hc", "NoRobust"]
+    robust_base_methods = ["robust"]
+    methods = base_methods + [f"{rb}_{rm}" for rb in robust_base_methods
+                              for rm in robust_methods]
+
+    # Couleurs
+    method_colors = {"raw": "grey", "hc": "green", "NoRobust": "red"}
+    palette = sns.color_palette("viridis", len(robust_methods))
+    for i, rm in enumerate(robust_methods):
+        method_colors[f"robust_{rm}"] = palette[i]
+
+    # Colonnes bundle -> long format
+    ignored = ['site', 'method', 'num_patients', 'disease_ratio',
+               'num_diseased', 'metric', 'disease', 'robust_method']
+    bundle_cols = [c for c in df_filtered.columns if c not in ignored]
+
+    df_long = df_filtered.melt(
+        id_vars=ignored,
+        value_vars=bundle_cols,
+        var_name='bundle',
+        value_name='mae'
+    )
+
+    unique_ratios = sorted(df_long['disease_ratio'].unique())
+    x = np.arange(len(unique_ratios))
+    group_width = 0.8
+    n_methods = len(methods)
+    offset = group_width / n_methods
+
+    fig, ax = plt.subplots(figsize=(14, 7))
+
+    for i_m, method in enumerate(methods):
+        if "_" in method and method != "no_robust":
+            method_base, robust_type = method.split("_", 1)
+            sub = df_long[
+                (df_long['method'] == method_base) &
+                (df_long['robust_method'] == robust_type)
+            ]
+        else:
+            sub = df_long[df_long['method'] == method]
+
+        means = []
+        stds = []
+        for ratio in unique_ratios:
+            vals = sub[sub['disease_ratio'] == ratio]['mae'].dropna()
+            means.append(vals.mean())
+            stds.append(vals.std())
+
+        positions = x - group_width / 2 + (i_m + 0.5) * offset
+        color = method_colors.get(method, "black")
+
+        ax.errorbar(
+            positions,
+            means,
+            yerr=stds,
+            fmt='o',
+            capsize=4,
+            markersize=5,
+            color=color,
+            ecolor=color,
+            label=method
+        )
+
+    ax.set_xlabel('Prct de patients malades')
+    ax.set_ylabel('MAE')
+    ax.set_title(
+        f"MAE moyenne ± écart‑type, tous bundles confondus\n"
+        f"Maladie : {disease}   |   Metric : {metric}\n"
+        f"Nb patients : {sample_size}   |   Dataset : {dataset_type}"
+    )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(unique_ratios)
+
+    # Légende sans doublons
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys(),
+              loc="upper left", bbox_to_anchor=(1, 1))
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(directory, 'all_bundles_mean_std.png'),
+                bbox_inches="tight")
+    plt.close()
+
+==== CELL 16 (code) ===
+# Touts les bundles confondu
+
+def plot_mea_all_bundles(df, sample_size, disease, metric, directory, dataset_type):
+    # Dossier de sortie
+    directory = os.path.join(directory, "MAE_PLOTS", disease, metric,
+                             str(sample_size), dataset_type, "ALL_BUNDLES")
+    os.makedirs(directory, exist_ok=True)
+
+    # Filtre de base
+    df_filtered = df[
+        (df['num_patients'] == sample_size) &
+        (df['disease'] == disease) &
+        (df['metric'] == metric)
+    ].copy()
+
+    # Méthodes robustes disponibles
+    robust_methods = [m for m in df_filtered['robust_method'].dropna().unique()
+                      if m not in ["No", "raw"]]
+
+    base_methods = ["hc", "NoRobust"]
+    robust_base_methods = ["robust"]
+    methods = base_methods + [f"{rb}_{rm}" for rb in robust_base_methods
+                              for rm in robust_methods]
+
+    # Couleurs
+    method_colors = {"raw": "grey", "hc": "green", "NoRobust": "red"}
+    robust_palette = sns.color_palette("viridis", len(robust_methods))
+    for i, rm in enumerate(robust_methods):
+        method_colors[f"robust_{rm}"] = robust_palette[i]
+
+    # Colonnes non‑bundle
+    ignored = ['site', 'method', 'num_patients', 'disease_ratio',
+               'num_diseased', 'metric', 'disease', 'robust_method']
+    bundle_cols = [c for c in df_filtered.columns if c not in ignored]
+
+    # On met tous les bundles ensemble dans une seule colonne « mae »
+    df_long = df_filtered.melt(
+        id_vars=ignored,
+        value_vars=bundle_cols,
+        var_name='bundle',
+        value_name='mae'
+    )
+
+    unique_ratios = sorted(df_long['disease_ratio'].unique())
+    x = np.arange(len(unique_ratios))
+    group_width = 0.8
+    n_methods = len(methods)
+    box_width = group_width / n_methods
+
+    fig, ax = plt.subplots(figsize=(14, 7))
+
+    for i_m, method in enumerate(methods):
+        if "_" in method and method != "no_robust":
+            method_base, robust_type = method.split("_", 1)
+            method_df = df_long[
+                (df_long['method'] == method_base) &
+                (df_long['robust_method'] == robust_type)
+            ]
+        else:
+            method_df = df_long[df_long['method'] == method]
+
+        data = [
+            method_df[method_df['disease_ratio'] == ratio]['mae'].dropna().values
+            for ratio in unique_ratios
+        ]
+
+        positions = x - group_width / 2 + (i_m + 0.5) * box_width
+        color = method_colors.get(method, "black")
+
+        if any(len(d) > 0 for d in data):
+            ax.boxplot(
+                data,
+                positions=positions,
+                widths=box_width * 0.8,
+                patch_artist=True,
+                boxprops=dict(facecolor=color, color=color),
+                medianprops=dict(color='black')
+            )
+
+    ax.set_xlabel('Prct de patients malades')
+    ax.set_ylabel('MAE')
+    ax.set_title(
+        f"MAE de l’harmonisation, tous bundles confondus\n"
+        f"Maladie : {disease}   |   Metric : {metric}\n"
+        f"Nb patients : {sample_size}   |   Dataset : {dataset_type}"
+    )
+    ax.set_xticks(x)
+    ax.set_xticklabels(unique_ratios)
+
+    legend_handles = [
+        plt.Line2D([0], [0], color=method_colors[m], lw=3, label=f'{m}')
+        for m in methods
+    ]
+    ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1, 1))
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(directory, 'all_bundles_boxplot.png'),
+                bbox_inches="tight")
+    plt.close()
+
+
+
+
+==== CELL 17 (code) ===
+def plot_mea(df, sample_size, disease, metric, directory, dataset_type):
+    directory = os.path.join(directory, "MAE_PLOTS", disease, metric, str(sample_size), dataset_type)
+    os.makedirs(directory, exist_ok=True)
+    
+    df_filtered = df[
+        (df['num_patients'] == sample_size) & 
+        (df['disease'] == disease) & 
+        (df['metric'] == metric)
+    ]
+
+    # Méthodes de base + méthodes robustes
+    robust_methods = [m for m in df_filtered['robust_method'].dropna().unique() if m not in ["No", "raw"]]
+
+
+    #base_methods = ["raw", "hc", "no_robust"]
+    base_methods = ["hc", "NoRobust"]
+    #robust_base_methods = ["robust", "robust_rwp"]
+    robust_base_methods = ["robust"]
+    methods = base_methods + [f"{rb}_{rm}" for rb in robust_base_methods for rm in robust_methods]
+    
+    # Couleurs
+    method_colors = {
+        "raw": "grey",
+        "hc": "green",
+        "NoRobust": "red"
+    }
+    robust_palette = sns.color_palette("viridis", len(robust_methods))
+    robust_rwp_palette = sns.color_palette("magma", len(robust_methods))
+    for i, rm in enumerate(robust_methods):
+        method_colors[f"robust_{rm}"] = robust_palette[i]
+        method_colors[f"robust_rwp_{rm}"] = robust_rwp_palette[i]
+
+    # Boucle sur les "bundles"
+    for bundle_column in df_filtered.columns:
+        # On ignore les colonnes non-numériques
+        if bundle_column in ['site', 'method', 'num_patients', 'disease_ratio',
+                             'num_diseased', 'metric', 'disease', 'robust_method']:
+            continue
+
+        bundle_df = df_filtered[[bundle_column, 'site', 'method', 'num_patients',
+                                 'disease_ratio', 'num_diseased', 'robust_method']].copy()
+        unique_ratios = sorted(bundle_df['disease_ratio'].unique())  # Trié pour être sûr de l'ordre
+
+        # *** ICI on paramètre la figure + le positionnement ***
+        fig, ax = plt.subplots(figsize=(14, 7))  # Ajuster au besoin
+
+        # Abscisses pour chaque ratio
+        x = np.arange(len(unique_ratios))
+        
+        # Largeur totale allouée pour le « groupe » de méthodes à chaque ratio
+        group_width = 0.8  
+        # On répartit cette largeur entre toutes les méthodes
+        n_methods = len(methods)
+        box_width = group_width / n_methods
+
+        # Tracé des boxplots pour chaque méthode
+        for i_m, method in enumerate(methods):
+            if "_" in method and method != "no_robust":
+                method_base, robust_type = method.split("_", 1)
+                method_df = bundle_df[
+                    (bundle_df['method'] == method_base) & 
+                    (bundle_df['robust_method'] == robust_type)
+                ]
+            else:
+                method_df = bundle_df[bundle_df['method'] == method]
+
+            # On prépare la liste de valeurs par ratio
+            data = [
+                method_df[method_df['disease_ratio'] == ratio][bundle_column].values 
+                for ratio in unique_ratios
+            ]
+            data = [[x for x in row if not (isinstance(x, float) and math.isnan(x))] for row in data]
+
+            # Positions: on centre autour de chaque x
+            # Exemple: x - group_width/2 + (i_m+0.5)*box_width
+            positions = x - group_width/2 + (i_m + 0.5)*box_width
+
+            color = method_colors.get(method, "black")
+            
+            # S’il y a au moins un point de données
+            if any(len(d) > 0 for d in data):
+                ax.boxplot(
+                    data,
+                    positions=positions,
+                    widths=box_width * 0.8,  # Légèrement plus petit que box_width
+                    patch_artist=True,
+                    boxprops=dict(facecolor=color, color=color),
+                    medianprops=dict(color='black')
+                )
+
+        ax.set_xlabel('Prct de patients malades')
+        ax.set_ylabel('MAE')
+        ax.set_title(
+            f"MAE de l'harmonization selon le pourcentage de patients malades\n"
+            f"Maladie: {disease}  |  Metric: {metric}  |  Bundle: {bundle_column}\n"
+            f"Nb patient total: {sample_size} Context: {dataset_type}"
+        )
+
+        # On place les ticks au milieu de chaque groupe (i.e. sur x)
+        ax.set_xticks(x)
+        ax.set_xticklabels(unique_ratios)
+
+        # Légende manuelle
+        legend_handles = [
+            plt.Line2D([0], [0], color=method_colors[m], lw=3, label=f'Method: {m}')
+            for m in methods
+        ]
+        ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1, 1))
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(directory, f'{bundle_column}_boxplot.png'), bbox_inches="tight")
+        plt.close()
+
+
+
+==== CELL 18 (code) ===
+def plot_meav(df, sample_size, disease, metric, directory, dataset_type):
+    directory = os.path.join(directory, "MAEV_PLOTS", disease, metric, str(sample_size), dataset_type)
+    os.makedirs(directory, exist_ok=True)
+    
+    df_filtered = df[
+        (df['num_patients'] == sample_size) & 
+        (df['disease'] == disease) & 
+        (df['metric'] == metric)
+    ]
+
+    # Méthodes de base + méthodes robustes
+    robust_methods = [m for m in df_filtered['robust_method'].dropna().unique() if m not in ["No", "raw"]]
+
+    #base_methods = ["raw", "hc", "no_robust"]
+    base_methods = ["hc", "NoRobust"]
+    #robust_base_methods = ["robust", "robust_rwp"]
+    robust_base_methods = ["robust"]
+    methods = base_methods + [f"{rb}_{rm}" for rb in robust_base_methods for rm in robust_methods]
+    
+    # Couleurs
+    method_colors = {
+        "raw": "grey",
+        "hc": "green",
+        "NoRobust": "red"
+    }
+    robust_palette = sns.color_palette("viridis", len(robust_methods))
+    robust_rwp_palette = sns.color_palette("magma", len(robust_methods))
+    for i, rm in enumerate(robust_methods):
+        method_colors[f"robust_{rm}"] = robust_palette[i]
+        method_colors[f"robust_rwp_{rm}"] = robust_rwp_palette[i]
+
+    # Boucle sur les "bundles"
+    for bundle_column in df_filtered.columns:
+        # On ignore les colonnes non-numériques
+        if bundle_column in ['site', 'method', 'num_patients', 'disease_ratio',
+                             'num_diseased', 'metric', 'disease', 'robust_method']:
+            continue
+
+        bundle_df = df_filtered[[bundle_column, 'site', 'method', 'num_patients',
+                                 'disease_ratio', 'num_diseased', 'robust_method']].copy()
+        unique_ratios = sorted(bundle_df['disease_ratio'].unique())  # Trié pour être sûr de l'ordre
+
+        # *** ICI on paramètre la figure + le positionnement ***
+        fig, ax = plt.subplots(figsize=(14, 7))  # Ajuster au besoin
+
+        # Abscisses pour chaque ratio
+        x = np.arange(len(unique_ratios))
+        
+        # Largeur totale allouée pour le « groupe » de méthodes à chaque ratio
+        group_width = 0.8  
+        # On répartit cette largeur entre toutes les méthodes
+        n_methods = len(methods)
+        box_width = group_width / n_methods
+
+        # Tracé des boxplots pour chaque méthode
+        for i_m, method in enumerate(methods):
+            if "_" in method and method != "no_robust":
+                method_base, robust_type = method.rsplit("_", 1)
+                method_df = bundle_df[
+                    (bundle_df['method'] == method_base) & 
+                    (bundle_df['robust_method'] == robust_type)
+                ]
+            else:
+                method_df = bundle_df[bundle_df['method'] == method]
+
+            # On prépare la liste de valeurs par ratio
+            data = [
+                method_df[method_df['disease_ratio'] == ratio][bundle_column].values 
+                for ratio in unique_ratios
+            ]
+
+            # Positions: on centre autour de chaque x
+            # Exemple: x - group_width/2 + (i_m+0.5)*box_width
+            positions = x - group_width/2 + (i_m + 0.5)*box_width
+
+            color = method_colors.get(method, "black")
+            
+            # S’il y a au moins un point de données
+            if any(len(d) > 0 for d in data):
+                ax.boxplot(
+                    data,
+                    positions=positions,
+                    widths=box_width * 0.8,  # Légèrement plus petit que box_width
+                    patch_artist=True,
+                    boxprops=dict(facecolor=color, color=color),
+                    medianprops=dict(color='black')
+                )
+
+        ax.set_xlabel('Prct de patients malades')
+        ax.set_ylabel('MAEV')
+        ax.set_title(
+            f"MAEV de l'harmonization selon le pourcentage de patients malades\n"
+            f"Maladie: {disease}  |  Metric: {metric}  |  Bundle: {bundle_column}\n"
+            f"Nb patient total: {sample_size} Context: {dataset_type}"
+        )
+
+        # On place les ticks au milieu de chaque groupe (i.e. sur x)
+        ax.set_xticks(x)
+        ax.set_xticklabels(unique_ratios)
+
+        # Légende manuelle
+        legend_handles = [
+            plt.Line2D([0], [0], color=method_colors[m], lw=3, label=f'Method: {m}')
+            for m in methods
+        ]
+        ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1, 1))
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(directory, f'{bundle_column}_boxplot.png'), bbox_inches="tight")
+        plt.close()
+
+
+==== CELL 19 (markdown) ===
+## ANALYSIS EXEC
+
+==== CELL 20 (code) ===
+# EXEC DES PLOTS DE MAE
+
+datasets = {
+    "train": mae_compilation_train_all,
+    "test":  mae_compilation_test_all
+}
+
+for dataset_type, mae_df in datasets.items():
+    add_nb_patients_and_diseased(mae_df)
+
+    tasks = [
+        (mae_df, sample_size, disease, metric, ANALYSIS_FOLDER, dataset_type)
+        for disease in diseases
+        for sample_size in sample_sizes
+        for metric in metrics
+    ]
+
+    Parallel(n_jobs=-1)(
+        delayed(plot_mea_all_bundles)(*task) for task in tasks
+    )
+
+    # Parallel(n_jobs=-1)(
+    #     delayed(plot_mea_mean_std)(*task) for task in tasks
+    # )
+
+    #     # Run all tasks in parallel
+    # Parallel(n_jobs=-1)(
+    #     delayed(plot_mea)(*task) for task in tasks
+    # )
+
+
+==== CELL 21 (code) ===
+# EXEC DES PLOTS DE MAEV
+datasets = {
+    "train": maev_compilation_train_all,
+    "test": maev_compilation_test_all
+}
+# Process each dataset (train and test) separately
+for dataset_type, maev_df in datasets.items():
+    add_nb_patients_and_diseased(maev_df)
+
+    # Generate all task combinations
+    tasks = [
+        (maev_df, sample_size, disease, metric, ANALYSIS_FOLDER, dataset_type)
+        for disease in diseases
+        for sample_size in sample_sizes
+        for metric in metrics
+    ]
+
+    # # Run all tasks in parallel
+    # Parallel(n_jobs=-1)(
+    #     delayed(plot_meav)(*task) for task in tasks
+    # )
+
+==== CELL 22 (code) ===
+os.makedirs(os.path.join(ANALYSIS_FOLDER, 'DIFF'), exist_ok=True)
+# ──────────────────────────────────────────────
+# 1. Charger le CSV
+# ──────────────────────────────────────────────
+df = mae_compilation_train_all
+df = df[df["method"] != "robust_rwp"]
+df = df[df["method"] != "raw"]
+
+meta_cols   = ["site", "method", "robust_method", "disease", "metric"]
+bundle_cols = [c for c in df.columns if c not in meta_cols]
+
+# ──────────────────────────────────────────────
+# 2. Préparer la baseline (NoRobust / No)
+# ──────────────────────────────────────────────
+baseline_key  = (df["method"] == "NoRobust") & (df["robust_method"] == "No")
+baseline_df   = df[baseline_key].copy()
+
+# On renomme les colonnes bundle → bundle_base pour pouvoir merger
+base_rename = {b: f"{b}_base" for b in bundle_cols}
+baseline_df  = baseline_df[["disease", "site", "metric"] + bundle_cols].rename(columns=base_rename)
+
+# ──────────────────────────────────────────────
+# 3. Fusionner pour avoir, sur chaque ligne, les valeurs baseline
+# ──────────────────────────────────────────────
+df = df.merge(baseline_df, on=["disease", "site", "metric"], how="left")
+
+# ──────────────────────────────────────────────
+# 4. Différence bundle-par-bundle  (robust − baseline)
+# ──────────────────────────────────────────────
+diff_cols = []
+for b in bundle_cols:
+    diff_col = f"{b}_diff"
+    df[diff_col] = df[b] - df[f"{b}_base"]
+    diff_cols.append(diff_col)
+
+# Moyenne des différences sur l’ensemble des bundles
+df["diff_mean"] = df[diff_cols].mean(axis=1)
+
+# ──────────────────────────────────────────────
+# 5. Étiquettes de méthode pour le tableau final
+# ──────────────────────────────────────────────
+def label_row(r):
+    if (r["method"] == "hc") and (r["robust_method"] == "No"):
+        return "hc"
+    return r["robust_method"]          # MMS, raw, etc.
+
+df["method_label"] = df.apply(label_row, axis=1)
+
+# ──────────────────────────────────────────────
+# 6. Agrégation finale  (moyenne des diff_mean)
+# ──────────────────────────────────────────────
+group_cols = ["disease", "site", "metric", "method_label"]
+agg = df.groupby(group_cols)["diff_mean"].mean()
+
+# Pivot → colonnes = method_label
+table = agg.unstack("method_label")
+
+# Ré-ordonner pour mettre "hc" en premier (si présent)
+cols = ["hc"] + [c for c in table.columns if c != "hc"]
+table = table[cols]
+
+# ──────────────────────────────────────────────
+# 7. Affichage ou export
+# ──────────────────────────────────────────────
+for disease in table.index.get_level_values("disease").unique():
+    subt = table.xs(disease, level="disease")
+    print(f"\n===== Disease : {disease} =====")
+    print(subt.round(6))        # arrondi pour lisibilité
+    subt.to_csv(os.path.join(ANALYSIS_FOLDER,'DIFF', f"diff_MAE_{disease}.csv"))  # Save in the main folder
+
+==== CELL 23 (code) ===
+# ──────────────────────────────────────────────
+# 1. Charger le CSV
+# ──────────────────────────────────────────────
+df = mae_compilation_train_all
+df = df[df["method"] != "robust_rwp"]
+df = df[df["method"] != "raw"]
+
+meta_cols   = ["site", "method", "robust_method", "disease", "metric"]
+bundle_cols = [c for c in df.columns if c not in meta_cols]
+
+# Colonnes méta vs. bundles
+meta_cols   = ["site", "method", "robust_method", "disease", "metric"]
+bundle_cols = [c for c in df.columns if c not in meta_cols]
+
+# ──────────────────────────────────────────────
+# 2. Passer en format « long »  → 1 ligne = 1 bundle
+# ──────────────────────────────────────────────
+long_df = (
+    df
+    .melt(id_vars=meta_cols, value_vars=bundle_cols,
+          var_name="bundle", value_name="mae")
+)
+
+# ──────────────────────────────────────────────
+# 3. Baseline  (NoRobust / No)  -> mae_base
+# ──────────────────────────────────────────────
+base_mask = (long_df["method"] == "NoRobust") & (long_df["robust_method"] == "No")
+base_df   = (
+    long_df[base_mask]
+    .rename(columns={"mae": "mae_base"})
+    .loc[:, ["disease", "site", "metric", "bundle", "mae_base"]]
+)
+
+# Fusionner pour ajouter la colonne mae_base
+long_df = long_df.merge(base_df,
+                        on=["disease", "site", "metric", "bundle"],
+                        how="left")
+
+# ──────────────────────────────────────────────
+# 4. Différence bundle-par-bundle
+# ──────────────────────────────────────────────
+long_df["diff"] = long_df["mae"] - long_df["mae_base"]
+
+# Étiquette de méthode : « hc » ou le robust_method
+def label(r):
+    return "hc" if (r["method"] == "hc" and r["robust_method"] == "No") else r["robust_method"]
+
+long_df["method_label"] = long_df.apply(label, axis=1)
+
+# ──────────────────────────────────────────────
+# 5. Tableau final  (index = site-metric-bundle, colonnes = méthode)
+# ──────────────────────────────────────────────
+pivot = (
+    long_df
+    .pivot_table(index=["disease", "site", "metric", "bundle"],
+                 columns="method_label",
+                 values="diff",
+                 aggfunc="mean")          # si jamais il y a des doublons
+    .sort_index()
+)
+
+# Mettre « hc » en premier si présent
+cols = ["hc"] + [c for c in pivot.columns if c != "hc"]
+pivot = pivot[cols]
+
+# ──────────────────────────────────────────────
+# 6. Afficher / sauver
+# ──────────────────────────────────────────────
+for disease in pivot.index.get_level_values("disease").unique():
+    sub = pivot.xs(disease, level="disease")
+    print(f"\n===== Disease : {disease} =====")
+    print(sub.round(6))          # arrondi pour la lisibilité
+    sub.to_csv(os.path.join(ANALYSIS_FOLDER,'DIFF', f"diff_MAE_per_bundle_{disease}.csv"))  # Save in the main folder
+
+
+==== CELL 24 (code) ===
+import pandas as pd
+import numpy as np
+from openpyxl.styles import PatternFill
+from openpyxl.formatting.rule import CellIsRule
+from openpyxl.utils import get_column_letter
+
+# ──────────────────────────────────────────────
+# 1) Fonctions "CSV → Styler" et "CSV → Excel"
+# ──────────────────────────────────────────────
+def style_diff_csv(csv_path: str, n_index_cols: int = 3, tol: float = 0.0):
+    """
+    Charge un CSV pivoté et renvoie un Styler coloré (affichage Jupyter).
+    n_index_cols = nb de colonnes d'index (ex.: site, metric, bundle = 3).
+    """
+    df = pd.read_csv(csv_path, index_col=list(range(n_index_cols)))
+    return _style_diff_df(df, tol)
+
+def excel_diff_csv(csv_path: str, excel_path: str,
+                   n_index_cols: int = 3, tol: float = 0.0):
+    """
+    Charge un CSV pivoté et écrit un Excel coloré.
+    """
+    df = pd.read_csv(csv_path, index_col=list(range(n_index_cols)))
+    _excel_diff_df(df, excel_path, tol)
+
+# ──────────────────────────────────────────────
+# 2) Implémentations "bas niveau" (utilisées ci-dessus)
+# ──────────────────────────────────────────────
+def _style_diff_df(df: pd.DataFrame, tol: float):
+    hc_present = 'hc' in df.columns
+
+    def _row_style(row):
+        hc_val = row['hc'] if hc_present else np.nan
+        out = []
+        for v in row:
+            if pd.isna(v):
+                out.append('')
+            elif v > 0:
+                out.append('background-color:#ffcccc')
+            elif hc_present and v <= hc_val + tol:
+                out.append('background-color:#ccffcc')
+            else:
+                out.append('')
+        return out
+
+    return df.style.apply(_row_style, axis=1)
+
+def _excel_diff_df(df: pd.DataFrame, path: str, tol: float):
+    with pd.ExcelWriter(path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='diff')
+        ws = writer.sheets['diff']
+
+        nrows = df.shape[0] + 1                # + entête
+        nindex = len(df.index.names)
+        first_col = 2 + nindex
+        last_col  = first_col + df.shape[1] - 1
+
+        red   = PatternFill(start_color="FFFFCCCC", end_color="FFFFCCCC", fill_type="solid")
+        green = PatternFill(start_color="FFCCFFCC", end_color="FFCCFFCC", fill_type="solid")
+
+        # Rouge: valeur > 0
+        for col in range(first_col, last_col + 1):
+            letter = get_column_letter(col)
+            ws.conditional_formatting.add(
+                f"{letter}2:{letter}{nrows}",
+                CellIsRule(operator='greaterThan', formula=['0'], fill=red)
+            )
+
+        # Vert: valeur ≤ hc + tol
+        if 'hc' in df.columns:
+            hc_idx = list(df.columns).index('hc')
+            hc_letter = get_column_letter(first_col + hc_idx)
+            for col in range(first_col, last_col + 1):
+                letter = get_column_letter(col)
+                formula = [f"{letter}2<={hc_letter}2+{tol}"]
+                ws.conditional_formatting.add(
+                    f"{letter}2:{letter}{nrows}",
+                    CellIsRule(operator='lessThanOrEqual', formula=formula, fill=green)
+                )
+    print(f"Excel enregistré : {path}")
+
+# ──────────────────────────────────────────────
+# 3) Exemple d’utilisation
+# ──────────────────────────────────────────────
+
+
+
+==== CELL 25 (code) ===
+# Gather the files generated in the last two cells
+diff_mae_files = [
+    os.path.join(ANALYSIS_FOLDER,'DIFF', f"diff_MAE_{disease}.csv")
+    for disease in diseases
+]
+
+diff_mae_per_bundle_files = [
+    os.path.join(ANALYSIS_FOLDER,'DIFF',f"diff_MAE_per_bundle_{disease}.csv")
+    for disease in pivot.index.get_level_values("disease").unique()
+]
+
+# Combine the lists of files
+generated_files = diff_mae_files + diff_mae_per_bundle_files
+
+# Print the list of generated files
+print("Generated files:")
+for file in generated_files:
+    print(file)
+    styler = style_diff_csv(file, n_index_cols=3, tol=1e-4)
+    excel_file = file.replace(".csv", "_colored.xlsx")
+    excel_diff_csv(file, excel_file, n_index_cols=3, tol=1e-4)
+
+
+==== CELL 26 (code) ===
+plt.rcParams.update({"figure.autolayout": True})
+
+# ───────────────────────────────────────────
+# 2. Helpers
+# ───────────────────────────────────────────
+
+def _ensure(path):
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def heatmap_auto(df, methods, out_dir, rows_per_chunk=250):
+    """Crée une ou plusieurs heatmaps robustes."""
+    pivot = df.set_index("bundle")[methods].sort_index()
+    n_rows = len(pivot)
+    n_chunks = math.ceil(n_rows / rows_per_chunk)
+    for i in range(n_chunks):
+        chunk = pivot.iloc[i*rows_per_chunk:(i+1)*rows_per_chunk]
+        h = max(4, len(chunk)*0.2)
+        plt.figure(figsize=(12, h))
+        sns.heatmap(chunk, cmap="RdYlGn_r", center=0, linewidths=.1)
+        plt.title(f"Δ MAE – bundles × méthodes (part {i+1}/{n_chunks})")
+        fname = f"heatmap_part_{i+1:02d}.png" if n_chunks > 1 else "heatmap.png"
+        plt.savefig(os.path.join(out_dir, fname), dpi=200)
+        plt.close()
+
+
+def boxplot_methods(df, methods, out_dir):
+    melted = df.melt(id_vars=["bundle"], value_vars=methods,
+                     var_name="method", value_name="diff_mae")
+    plt.figure(figsize=(12, 5))
+    sns.boxplot(data=melted, x="method", y="diff_mae")
+    plt.xticks(rotation=45, ha="right")
+    plt.axhline(0, ls="--", c="grey")
+    plt.title("Distribution des Δ MAE par méthode")
+    plt.savefig(os.path.join(out_dir, "boxplot_methods.png"), dpi=200)
+    plt.close()
+
+
+def barchart_mean(df, methods, out_dir):
+    means = df[methods].mean().sort_values()
+    means.plot(kind="barh", figsize=(6, max(4, len(means)*.4)))
+    plt.axvline(0, ls="--", c="grey")
+    plt.xlabel("Δ MAE moyen (négatif = mieux)")
+    plt.title("Performance moyenne par méthode")
+    plt.savefig(os.path.join(out_dir, "barchart_mean.png"), dpi=200)
+    plt.close()
+
+
+def radars_per_site(df, methods, out_dir):
+    sites = df["site"].unique()
+    n = len(methods)
+    angles = np.linspace(0, 2*np.pi, n, endpoint=False)
+    for s in sites:
+        stats = df[df["site"] == s][methods].mean()
+        vals = np.concatenate([stats.values, stats.values[:1]])
+        angs = np.append(angles, angles[0])
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(111, polar=True)
+        ax.plot(angs, vals, marker="o")
+        ax.fill(angs, vals, alpha=.25)
+        ax.set_xticks(angles)
+        ax.set_xticklabels(methods, size=7)
+        ax.set_title(f"Profil Δ MAE – {s}")
+        plt.savefig(os.path.join(out_dir, f"radar_{s}.png"), dpi=200)
+        plt.close()
+
+
+def scatters_raw_vs_method(df, methods, out_dir):
+    base = "hc"
+    for m in methods:
+        if m in ("hc", base):
+            continue
+        plt.figure(figsize=(4,4))
+        plt.scatter(df[base], df[m], alpha=.5, s=15)
+        plt.axhline(0, ls="--", c="grey")
+        plt.axvline(0, ls="--", c="grey")
+        plt.xlabel("Δ MAE raw")
+        plt.ylabel(f"Δ MAE {m}")
+        plt.title(f"raw vs {m}")
+        plt.savefig(os.path.join(out_dir, f"scatter_raw_vs_{m}.png"), dpi=200)
+        plt.close()
+
+# ───────────────────────────────────────────
+# 3. Exécution multi‑diseases
+# ───────────────────────────────────────────
+autosplit_rows  = 250
+for disease in diseases:
+    csv_path = os.path.join(ANALYSIS_FOLDER, "DIFF", f"diff_MAE_per_bundle_{disease}.csv")
+    if not os.path.exists(csv_path):
+        print("⚠️  CSV introuvable :", csv_path)
+        continue
+
+    df = pd.read_csv(csv_path)
+    methods = [c for c in df.columns if c not in ("site", "metric", "bundle")]
+
+    root = os.path.join(ANALYSIS_FOLDER, "VIS_OUTPUT", disease)
+    heat_dir   = _ensure(os.path.join(root, "heatmaps"))
+    box_dir    = _ensure(os.path.join(root, "boxplots"))
+    bar_dir    = _ensure(os.path.join(root, "bar_charts"))
+    radar_dir  = _ensure(os.path.join(root, "radars"))
+    scatter_dir= _ensure(os.path.join(root, "scatters"))
+
+    # heatmap_auto(df, methods, heat_dir, rows_per_chunk=autosplit_rows)
+    boxplot_methods(df, methods, box_dir)
+    barchart_mean(df, methods, bar_dir)
+    radars_per_site(df, methods, radar_dir)
+    scatters_raw_vs_method(df, methods, scatter_dir)
+
+    print(f"✅ {disease} → graphes dans {os.path.abspath(root)}")
+
+==== CELL 27 (code) ===
+
+TOP_N = 5   
+
+for disease in diseases:
+    csv_path = os.path.join(ANALYSIS_FOLDER, "DIFF", f"diff_MAE_per_bundle_{disease}.csv")
+    if not os.path.exists(csv_path):
+        print("⚠️  CSV introuvable :", csv_path)
+        continue
+
+    df = pd.read_csv(csv_path)
+    methods = [c for c in df.columns if c not in ("site", "metric", "bundle")]
+
+    # Reshape longue pour simplifier l'extraction
+    long = df.melt(id_vars=["site", "metric", "bundle"], value_vars=methods,
+                   var_name="method", value_name="diff_mae")
+
+    # Garder seulement les cas où diff_mae est non‑nul / non‑NaN
+    long = long.dropna(subset=["diff_mae"])
+
+    worst_list = []
+    for m in methods:
+        top_bad = long[long["method"] == m].nlargest(TOP_N, "diff_mae")
+        worst_list.append(top_bad)
+
+    worst_df = pd.concat(worst_list, ignore_index=True)
+
+    # Tri final pour lisibilité: par méthode puis diff_mae décroissant
+    worst_df = worst_df.sort_values(["method", "diff_mae"], ascending=[True, False])
+
+    out_csv = os.path.join(ANALYSIS_FOLDER, f"{disease}_worst_cases_top{TOP_N}.csv")
+    worst_df.to_csv(out_csv, index=False)
+
+    print(f"✅ {disease}: CSV des {TOP_N} pires cas par méthode → {out_csv}")
+    display_cols = ["method", "diff_mae", "site", "metric", "bundle"]
+    print(worst_df[display_cols])  # aperçu rapide
+
+==== CELL 28 (markdown) ===
+## TESTS
+
+==== CELL 29 (code) ===
+# # # TEST ADD BIAIS
+# # Split the data into training and testing sets
+# directory = os.path.join(MAINFOLDER, "testBiais")
+# os.makedirs(directory, exist_ok=True)
+# train_df, test_df = split_train_test(CAMCAN, test_size=0.2, random_state=42)
+
+# # Generate biased data
+# # Save the original non-biased data to temporary files
+# temp_train_file_original = os.path.join(directory, "temp_train_original.csv")
+# temp_test_file_original = os.path.join(directory, "temp_test_original.csv")
+# train_df.to_csv(temp_train_file_original, index=False)
+# test_df.to_csv(temp_test_file_original, index=False)
+
+# # Generate biased data
+# sampled_df_biaied, test_df_biaised, gammas,deltas, ruffles= generate_biaised_data(train_df, test_df)
+
+# # Save the biased data to temporary files
+# temp_train_file = os.path.join(directory, "temp_train_biased.csv")
+# temp_test_file = os.path.join(directory, "temp_test_biased.csv")
+# sampled_df_biaied.to_csv(temp_train_file, index=False)
+# test_df_biaised.to_csv(temp_test_file, index=False)
+
+# # Run the combat_visualize_data script
+# outname_train = os.path.join("visualize_train")
+# cmd = (
+#     "scripts/combat_visualize_data.py"
+#     + " "
+#     + temp_train_file_original
+#     + " "
+#     + temp_train_file
+#     + " --out_dir "
+#     + directory
+#     + " --outname "
+#     + outname_train
+#     + " -f"
+#     + " --bundles all"
+# )
+# subprocess.call(cmd, shell=True)
+
+# # Display gammas and deltas along with their mean and standard deviation
+# print("Gammas:", gammas)
+# print("Deltas:", deltas)
+# gammas = list(gammas.values())
+# deltas = list(deltas.values())
+# print("\nGamma Statistics:")
+# print(f"Mean: {np.mean(gammas)}, Std: {np.std(gammas)}")
+
+# print("\nDelta Statistics:")
+# print(f"Mean: {np.mean(deltas)}, Std: {np.std(deltas)}")
+# print("Ruffles:", ruffles)
+
+
+==== CELL 30 (code) ===
+# # TEST Powerpoint generation
+# d  = os.path.join(MAINFOLDER, robust_method, "adni_100_Philips_3T")
+# create_presentation(d)
+
+==== CELL 31 (code) ===
+# # TEST the sample_patients function with compilation data data
+# sampled_df = sample_patients(COMPILATION, num_patients=100, disease_ratio=0.5)
+# print(sampled_df)
+
+
+==== CELL 32 (code) ===
+# load_metrics("ROBUST/IQR/50_30/0/", "50_patients_30_percent_0")
+
+==== CELL 33 (code) ===
+# # Load the dists_compilation and metrics_compilation CSV files
+# dists_compilation_path = os.path.join(directory, "dists_compilation.csv")
+# metrics_compilation_path = os.path.join(directory, "metrics_compilation.csv")
+
+# dists_compilation = pd.read_csv(dists_compilation_path)
+# metrics_compilation = pd.read_csv(metrics_compilation_path)
+
+# # Change the site column
+# dists_compilation['site'] = dists_compilation['site'].str.rsplit('_', n=1).str[0]
+# metrics_compilation['site'] = metrics_compilation['site'].str.rsplit('_', n=1).str[0]
+
+# # Display the means by site
+# dists_means_by_site = dists_compilation.groupby(['site','comparaison']).mean()
+# metrics_means_by_site = metrics_compilation.groupby('site').mean()
+
+# print(dists_means_by_site)
+# print(metrics_means_by_site)
+
+==== CELL 34 (code) ===
+# # FIX METRICS COMPILATION
+# directory = os.path.join(MAINFOLDER, robust_method)
+# df = pd.read_csv(os.path.join(directory, "metrics_compilation.csv"))
+
+# # Group by the site
+# grouped = df.groupby('site')
+
+# # Process each site
+# cleaned_dfs = []
+# for site, group in grouped:
+#     # Reset index for easier manipulation
+#     group = group.reset_index(drop=True)
+    
+#     # # The first row is the "bundle row" (new column names)
+#     # new_columns = group.iloc[0].values  # Extract column names from the first row
+#     # new_columns[-1] = 'site'
+#     # group = group.iloc[1:]  # Remove the first row
+    
+#     # # Assign new column names
+#     # group.columns = new_columns
+    
+#     # # Sort the columns alphabetically (excluding 'site')
+#     # sorted = group.sort_index(axis=1)
+#     # Add a new column 'nomm' with the value indicating the metric for each row
+#     metrics = ['tp', 'fp', 'tn', 'fn', 'precision', 'recall', 'taux_faux_positifs', 'f1_score']
+#     group['metric'] = metrics
+    
+#     # # Append the cleaned DataFrame for this site
+#     cleaned_dfs.append(group)
+
+# # Concatenate all cleaned DataFrames
+# final_df = pd.concat(cleaned_dfs, ignore_index=True)
+
+# # Save or display the result
+# final_df.to_csv(os.path.join(directory, "metrics_compilation.csv"), index=False)
+
+
+==== CELL 35 (code) ===
+# REAL SITES
+# directory = os.path.join(MAINFOLDER, robust_method)
+# raw_directory = os.path.join(RAWFOLDER, site_group)
+# for filename in sorted(os.listdir(raw_directory)):
+#     f = os.path.join(raw_directory, filename)
+#     # checking if it is a file
+#     if os.path.isfile(f):
+#         analyse_site(f, robust_method, directory)
+        
+

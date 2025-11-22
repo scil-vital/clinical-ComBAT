@@ -79,7 +79,7 @@ def predict_malades_MLP(df, run_name):
     # 6. Retourne un DataFrame (sid, probabilité) pour seuil ultérieur
     return pd.DataFrame({
         "sid": sid_order.to_numpy(),
-        "prob_maladie": proba.astype(float),
+        "prob_outlier": proba.astype(float),
     })
 
 # ------------------------------------------------------------------

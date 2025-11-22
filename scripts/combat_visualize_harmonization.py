@@ -362,16 +362,18 @@ def main():
         if args.fixed_ylim:
             ymin, ymax = float(args.fixed_ylim[0]), float(args.fixed_ylim[1])
         else:
-            ymin, ymax = np.percentile(
-                df_ref_bundle["mean"], [y_min_percentile, y_max_percentile]
-            )
-            ymin = ymin - (
-                df_ref_bundle["mean"].min() * (0.05 + args.increase_ylim / 100)
-            )
-            ymax = ymax + (
-                df_ref_bundle["mean"].max() * (0.05 + args.increase_ylim / 100)
-            )
-        ymin, ymax = float(0.2), float(0.4)
+            # ymin, ymax = np.percentile(
+            #     df_ref_bundle["mean"], [y_min_percentile, y_max_percentile]
+            # )
+            # ymin = ymin - (
+            #     df_ref_bundle["mean"].min() * (0.05 + args.increase_ylim / 100)
+            # )
+            # ymax = ymax + (
+            #     df_ref_bundle["mean"].max() * (0.05 + args.increase_ylim / 100)
+            # )
+            ymin = min(df_vals["mean"])*0.99    
+            ymax = max(df_vals["mean"])*1.01
+        # ymin, ymax = float(0.2), float(0.4)
         # Generate figure for each harmonization type
         for harmonization, model in product(
             np.unique(df.harmonization), np.unique(df.model)

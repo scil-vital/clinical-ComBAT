@@ -199,7 +199,7 @@ class QuickCombatClinic(QuickCombat):
         return s_y
 
  
-    def fit(self, ref_data, mov_data):
+    def fit(self, ref_data, mov_data, HC_only=True):
         """
         Combat Clinic fit. 
         The moving site beta and alpha are fitted using the moving site data.
@@ -211,7 +211,7 @@ class QuickCombatClinic(QuickCombat):
             Data of the moving site.
         """
 
-        ref_data, mov_data = self.prepare_data(ref_data, mov_data)
+        ref_data, mov_data = self.prepare_data(ref_data, mov_data, HC_only)
 
         if self.regul_mov == -1:
             self.regul_mov = self.regularization_parameter_tuning(ref_data, mov_data)
