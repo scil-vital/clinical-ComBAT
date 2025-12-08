@@ -237,7 +237,7 @@ Common helper flags: each script accepts `-v/--verbose` (default `WARNING`) and 
     ```bash
     combat_visualize_data src/clinical_combat/data/CamCAN.md.raw.csv.gz \
         src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
-        harmonized/pairwise/ModifiedCamCAN.md.pairwise.csv.gz \
+        harmonized/pairwise/ModifiedCamCAN.md.pairwise.harmonized.csv.gz \
         --bundles mni_AF_L mni_AF_R \
         --out_dir figures/data/
     ```
@@ -288,7 +288,7 @@ Common helper flags: each script accepts `-v/--verbose` (default `WARNING`) and 
     ```bash
     combat_visualize_harmonization src/clinical_combat/data/CamCAN.md.raw.csv.gz \
         src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
-        harmonized/pairwise/ModifiedCamCAN.md.pairwise.csv.gz \
+        harmonized/pairwise/ModifiedCamCAN.md.pairwise.harmonized.csv.gz \
         --bundles all \
         --out_dir figures/harmonization/
     ```
