@@ -2,12 +2,12 @@
 import numpy as np
 import pandas as pd
 
-from clinical_combat.harmonization.QuickCombat import QuickCombat
+from clinical_combat.harmonization.Combat import Combat
 
 
-class QuickCombatPairwise(QuickCombat):
+class CombatPairwise(Combat):
     """
-    Quick ComBat: Harmonize the moving site to the reference site.
+    ComBat: Harmonize the moving site to the reference site.
     Regression parameters are jointly fitted as in Fortin et al. 2017.
     """
 
@@ -178,9 +178,9 @@ class QuickCombatPairwise(QuickCombat):
         design_mov, y_mov = self.get_design_matrices(mov_data)
         design_ref, y_ref = self.get_design_matrices(ref_data)
         design_all, y_all = self.get_design_matrices(all_data)
-        self.alpha, self.beta = QuickCombat.get_alpha_beta(design_all, y_all,
+        self.alpha, self.beta = Combat.get_alpha_beta(design_all, y_all,
                                                            regul=self.regul)
-        self.sigma = QuickCombat.get_sigma(design_all, y_all,
+        self.sigma = Combat.get_sigma(design_all, y_all,
                                            self.alpha, self.beta)
 
         z = self.standardize_moving_data(design_mov, y_mov)
@@ -188,7 +188,7 @@ class QuickCombatPairwise(QuickCombat):
         self.delta_mov = np.array([np.std(x, ddof=1) for x in z])
 
         if self.use_empirical_bayes:
-            self.gamma_mov, self.delta_mov = QuickCombat.emperical_bayes_estimate(
+            self.gamma_mov, self.delta_mov = Combat.emperical_bayes_estimate(
                 z,
                 self.gamma_mov,
                 self.delta_mov**2,

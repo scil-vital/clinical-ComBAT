@@ -12,13 +12,13 @@ from clinical_combat import COMBAT_ROOT
 
 data_path = os.path.join(COMBAT_ROOT, "src/clinical_combat/data/")
 
-def test_quick_combat_pairwise():
-    out = os.path.join(COMBAT_ROOT, "src/clinical_combat/cli/tests/out/QuickCombat_pairwise")
+def test_combat_pairwise():
+    out = os.path.join(COMBAT_ROOT, "src/clinical_combat/cli/tests/out/Combat_pairwise")
     if os.path.exists(out):
         shutil.rmtree(out)
 
     cmd = (
-        "combat_quick "
+        "combat_pipeline "
         + data_path
         + "CamCAN.md.raw.csv.gz "
         + data_path
@@ -55,7 +55,7 @@ def test_quick_combat_pairwise():
 
     model_ = os.path.join(
         COMBAT_ROOT,
-        "src/clinical_combat/cli/tests/target_out/QuickCombat_pairwise",
+        "src/clinical_combat/cli/tests/target_out/Combat_pairwise",
         "ShamCamCAN-CamCAN.md.pairwise.model.csv",
     )
     a = np.loadtxt(model, dtype=str, delimiter=",")
@@ -64,7 +64,7 @@ def test_quick_combat_pairwise():
 
     data_ = os.path.join(
         COMBAT_ROOT,
-        "src/clinical_combat/cli/tests/target_out/QuickCombat_pairwise",
+        "src/clinical_combat/cli/tests/target_out/Combat_pairwise",
         "ShamCamCAN.md.pairwise.csv.gz",
     )
     a = pd.read_csv(data)["mean"].to_numpy()
@@ -72,14 +72,14 @@ def test_quick_combat_pairwise():
     npt.assert_array_almost_equal(a, b)
 
 
-def test_quick_combat_clinic():
-    out = os.path.join(COMBAT_ROOT, "src/clinical_combat/cli/tests/out/QuickCombat_clinic")
+def test_combat_clinic():
+    out = os.path.join(COMBAT_ROOT, "src/clinical_combat/cli/tests/out/Combat_clinic")
 
     if os.path.exists(out):
         shutil.rmtree(out)
 
     cmd = (
-        "combat_quick "
+        "combat_pipeline "
         + data_path
         + "CamCAN.md.raw.csv.gz "
         + data_path
@@ -116,7 +116,7 @@ def test_quick_combat_clinic():
 
     model_ = os.path.join(
         COMBAT_ROOT,
-        "src/clinical_combat/cli/tests/target_out/QuickCombat_clinic",
+        "src/clinical_combat/cli/tests/target_out/Combat_clinic",
         "ShamCamCAN-CamCAN.md.clinic.model.csv",
     )
     a = np.loadtxt(model, dtype=str, delimiter=",")
@@ -125,7 +125,7 @@ def test_quick_combat_clinic():
 
     data_ = os.path.join(
         COMBAT_ROOT,
-        "src/clinical_combat/cli/tests/target_out/QuickCombat_clinic",
+        "src/clinical_combat/cli/tests/target_out/Combat_clinic",
         "ShamCamCAN.md.clinic.csv.gz",
     )
     a = pd.read_csv(data)["mean"].to_numpy()

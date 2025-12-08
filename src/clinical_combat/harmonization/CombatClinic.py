@@ -3,12 +3,12 @@ import logging
 
 import numpy as np
 
-from clinical_combat.harmonization.QuickCombat import QuickCombat
+from clinical_combat.harmonization.Combat import Combat
 
 
-class QuickCombatClinic(QuickCombat):
+class CombatClinic(Combat):
     """
-    Quick ComBat: Harmonize the moving site to the reference site.
+    ComBat: Harmonize the moving site to the reference site.
     Each site regression parameters is fitted independently.
     """
 
@@ -231,21 +231,21 @@ class QuickCombatClinic(QuickCombat):
         # fit intercept and covariates of the reference site
         # using the reference site data
         design_ref, y_ref = self.get_design_matrices(ref_data)
-        self.alpha_ref, self.beta_ref = QuickCombat.get_alpha_beta(
+        self.alpha_ref, self.beta_ref = Combat.get_alpha_beta(
             design_ref, y_ref, self.regul_ref
         )
-        self.sigma_ref = QuickCombat.get_sigma(
+        self.sigma_ref = Combat.get_sigma(
             design_ref, y_ref, self.alpha_ref, self.beta_ref
         )
         # fit intercept and covariates of the moving site using the moving site data
         design_mov, y_mov = self.get_design_matrices(mov_data)
-        self.alpha_mov, self.beta_mov = QuickCombat.get_alpha_beta(
+        self.alpha_mov, self.beta_mov = Combat.get_alpha_beta(
             design_mov,
             y_mov,
             self.regul_mov,
             np.hstack([self.alpha_ref[:, None], self.beta_ref]),
         )
-        self.sigma_mov = QuickCombat.get_sigma(
+        self.sigma_mov = Combat.get_sigma(
             design_mov, y_mov, self.alpha_mov, self.beta_mov
         )
 
@@ -369,7 +369,7 @@ class QuickCombatClinic(QuickCombat):
         # fit intercept and covariates of the reference site using
         # the reference site data
         design_ref, y_ref = self.get_design_matrices(ref_data)
-        self.alpha_ref, self.beta_ref = QuickCombat.get_alpha_beta(
+        self.alpha_ref, self.beta_ref = Combat.get_alpha_beta(
             design_ref, y_ref, self.regul_ref
         )
         ref_models = []
@@ -379,7 +379,7 @@ class QuickCombatClinic(QuickCombat):
         design_mov, y_mov = self.get_design_matrices(mov_data)
         current_reg = 0.01
         while current_reg < max_reg:
-            self.alpha_mov, self.beta_mov = QuickCombat.get_alpha_beta(
+            self.alpha_mov, self.beta_mov = Combat.get_alpha_beta(
                 design_mov,
                 y_mov,
                 current_reg,

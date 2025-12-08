@@ -30,9 +30,9 @@ import numpy as np
 import pandas as pd
 
 from clinical_combat.harmonization import from_model_name
-from clinical_combat.harmonization.QuickCombat import QuickCombat
+from clinical_combat.harmonization.Combat import Combat
 
-from clinical_combat.utils.combatio import save_quickcombat_data_to_csv
+from clinical_combat.utils.combatio import save_combat_data_to_csv
 
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
@@ -132,8 +132,8 @@ def main():
     model.bundle_names = data.bundle.unique()
 
     all_design, all_y = model.get_design_matrices(all_data)
-    alpha, beta = QuickCombat.get_alpha_beta(all_design, all_y)
-    sigma = QuickCombat.get_sigma(all_design, all_y, alpha, beta)
+    alpha, beta = Combat.get_alpha_beta(all_design, all_y)
+    sigma = Combat.get_sigma(all_design, all_y, alpha, beta)
 
     design, y = model.get_design_matrices(data)
     y_cor = []
@@ -153,7 +153,7 @@ def main():
         os.makedirs(_dir, exist_ok=True)
     assert_outputs_exist(parser, args, args.out_file, check_dir_exists=True)
 
-    save_quickcombat_data_to_csv(
+    save_combat_data_to_csv(
         data,
         np.array(y_cor),
         model.bundle_names,

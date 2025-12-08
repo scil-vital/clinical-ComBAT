@@ -7,7 +7,7 @@ a moving site to a reference site using Bhattacharyya distance.
 # Usage :
 # Use the pairwise method to harmonize the moving site data to
 # the reference site data (linear)
-combat_quick_QC reference_site.raw.csv.gz moving_site.raw.csv.gz \
+combat_QC reference_site.raw.csv.gz moving_site.raw.csv.gz \
                 reference_site-moving_site.metric_name.method.model.csv
 """
 

@@ -90,7 +90,7 @@ def load_results_csv(in_csv: str) -> pd.DataFrame:
     return df
 
 
-def save_quickcombat_data_to_csv(
+def save_combat_data_to_csv(
     mov_data,
     y_harm,
     bundle_names,

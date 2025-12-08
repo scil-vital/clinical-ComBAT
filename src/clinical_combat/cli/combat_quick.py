@@ -4,7 +4,7 @@
 Script to compute and apply the transfer function from
 a moving site to a reference site.
 
-This script calls combat_quick_fit, combat_quick_apply,
+This script calls combat_fit, combat_apply,
 combat_visualize_model and combat_visualize_harmonization.
 The exact commands are printed in the terminal.
 
@@ -25,10 +25,10 @@ NOTE: the harmonization parameters (regul, degree, nu, tau) are preset
 
 Examples:
 # Harmonized with the Clinic method with un polynomial degree of 2
-combat_quick reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
+combat_pipeline reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
 
 # Harmonized with the Pairwise method (i.e. Fortin et al., (2017) method)
-combat_quick reference_site.raw.csv.gz moving_site.raw.csv.gz --method pairwise
+combat_pipeline reference_site.raw.csv.gz moving_site.raw.csv.gz --method pairwise
 
 """
 import argparse
@@ -192,7 +192,7 @@ def main():
     )
     print("\n     Fit model : ", args.output_model_filename)
     cmd = (
-        "combat_quick_fit"
+        "combat_fit"
         + " "
         + args.ref_data
         + " "
@@ -235,7 +235,7 @@ def main():
     # Apply
     print("\n     Harmonized site : ", args.output_results_filename)
     cmd = (
-        "combat_quick_apply"
+        "combat_apply"
         + " "
         + args.mov_data
         + " "
@@ -306,7 +306,7 @@ def main():
     print("\n   Raw data ")
 
     cmd = (
-        "combat_quick_QC"
+        "combat_QC"
         + " "
         + args.ref_data
         + " "
@@ -328,7 +328,7 @@ def main():
 
     print("\n   Harmonized data ")
     cmd = (
-        "combat_quick_QC"
+        "combat_QC"
         + " "
         + args.ref_data
         + " "
