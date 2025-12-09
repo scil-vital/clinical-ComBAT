@@ -118,7 +118,7 @@ def main():
         args.site_name = str(data.site.unique()) + "_corrupted"
 
     model = from_model_name(
-        "clinic",
+        "clinical",
         ignore_handedness_covariate=args.ignore_handedness,
         ignore_sex_covariate=args.ignore_sex,
         use_empirical_bayes=False,
