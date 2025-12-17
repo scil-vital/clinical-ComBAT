@@ -4,14 +4,14 @@ import sys
 
 import numpy as np
 
-from clinical_combat.harmonization.QuickHarmonizationMethod import (
-    QuickHarmonizationMethod,
+from clinical_combat.harmonization.HarmonizationMethod import (
+    HarmonizationMethod,
 )
 
 
-class QuickCombat(QuickHarmonizationMethod):
+class Combat(HarmonizationMethod):
     """
-    Quick ComBat: Abstract class.
+    ComBat: Abstract class.
     """
 
     def __init__(
@@ -164,7 +164,7 @@ class QuickCombat(QuickHarmonizationMethod):
         )
         mov_dist = y_mov[bundle_idx] - self.alpha[bundle_idx] - covariate_effect_mov
 
-        return QuickCombat.bhattacharyya_distance(ref_dist, mov_dist)
+        return Combat.bhattacharyya_distance(ref_dist, mov_dist)
 
     @staticmethod
     def bhattacharyya_distance(target_dist, moving_dist):
@@ -266,10 +266,10 @@ class QuickCombat(QuickHarmonizationMethod):
             hstack_list.append(np.ones(len(data["sid"])))  # intercept
 
             if not self.ignore_sex_covariate:
-                hstack_list.append(QuickCombat.to_category(data["sex"]))
+                hstack_list.append(Combat.to_category(data["sex"]))
 
             if not self.ignore_handedness_covariate:
-                hstack_list.append(QuickCombat.to_category(data["handedness"]))
+                hstack_list.append(Combat.to_category(data["handedness"]))
 
             # Elevate to a polynomial of degree the age data
             ages = data["age"].to_numpy()
@@ -469,9 +469,9 @@ class QuickCombat(QuickHarmonizationMethod):
         t2 = np.var(gamma_hat, ddof=1)
 
         # a: shape of the multplicative bias (shape in an inver-gamma)
-        a = QuickCombat.estimate_a_prior(delta_hat)
+        a = Combat.estimate_a_prior(delta_hat)
         # b: scale of the multplicative bias (scale in an inver-gamma)
-        b = QuickCombat.estimate_b_prior(delta_hat)
+        b = Combat.estimate_b_prior(delta_hat)
 
         # The number of subject per bundle may vary. Here we take the mean.
         n = np.array([len(d) for d in sdat])

@@ -5,7 +5,9 @@ Reference package for ComBAT harmonization of clinical MRI data. It ships the Co
 ## References
 
 - Girard, G., Edde, M., Dumais, F., et al. (2025). *Clinical-ComBAT: a diffusion MRI harmonization method for clinical normative modeling applications*.  Submitted to Medical Image Analysis.
-- Jodoin, P.-M., Edde, M., Girard, G., et al. (2025). ComBAT harmonization for diffusion MRI: Challenges and best practices. accepted at Nature Scientific Reports. https://arxiv.org/abs/2505.14722
+- Jodoin, P.-M., Edde, M., Girard, G., et al. (2025). Challenges and best practices when using ComBAT to harmonize diffusion MRI data.
+*Nature Scientific Reports*, 15, 41508.
+https://www.nature.com/articles/s41598-025-25400-x
 - Fortin, J.-P., Parker, D., Tun¸c, B., et al. (2017). Harmonization of multi-site diffusion tensor imaging data. *NeuroImage*, 161, 149–170. https://doi.org/10.1016/j.neuroimage.2017.08.047
 
 ## Licence
@@ -55,7 +57,7 @@ All scripts accept compressed or uncompressed CSV files.
 | --- | --- |
 | `src/` | Python package (harmonization, utilities, visualization). |
 | `src/clinical_combat/cli/` | Production-ready scripts to fit, apply, and visualize ComBAT. |
-| `src/clinical_combat/cli/tests/` | Automated checks (for example `pytest scripts/tests/test_combat_quick.py`). |
+| `src/clinical_combat/cli/tests/` | Automated checks (for example `pytest scripts/tests/test_combat_pipeline.py`). |
 | `src/clinical_combat/cli_dev/` | Research helpers and additional plotting utilities (optional for end-users). |
 | `src/clinical_combat/data/` | Example datasets and sample figures. |
 | `pyproject.toml` | Package configuration file. |
@@ -78,15 +80,15 @@ sid,site,bundle,metric,mean,age,sex,handedness,disease
 - `disease` acts as a flag; any row whose value is not `HC` is dropped before fitting the model
 
 `src/clinical_combat/data/` contains fully fledged examples (`CamCAN.md.raw.csv.gz` and
-`ShamCamCAN.md.raw.csv.gz`) illustrating the column layout
+`ModifiedCamCAN.md.raw.csv.gz`) illustrating the column layout
 distribution.
 
 ## Choosing a ComBAT variant
-The code supports two harmonization modes, namely clinic and pairwise. In both cases, the procedure harmonizes data from a moving site onto a reference site.
+The code supports two harmonization modes, namely clinical and pairwise. In both cases, the procedure harmonizes data from a moving site onto a reference site.
 | Method | Description |
 | --- | --- |
-| `clinic` (default) | Harmonizes a moving site to a normative reference following the Clinical-ComBAT method (Girard et al., 2025). It fits site-specific polynomial covariate models, anchors variance with Bayesian priors suited to small cohorts, and auto-tunes the hyperparameters to keep the harmonized metrics consistent with the reference population. |
-| `pairwise` | Adaptation of the original ComBAT (Fortin et al., 2017) that still fits both sites together but explicitly anchors the harmonization to a chosen reference site. For more details, see Jodoin et al. (2025), *ComBAT Harmonization for Diffusion MRI: Challenges and Best Practices* (arXiv:2505.14722). |
+| `clinical` (default) | Harmonizes a moving site to a normative reference following the Clinical-ComBAT method (Girard et al., 2025). It fits site-specific polynomial covariate models, anchors variance with Bayesian priors suited to small cohorts, and auto-tunes the hyperparameters to keep the harmonized metrics consistent with the reference population. |
+| `pairwise` | Adaptation of the original ComBAT (Fortin et al., 2017) that still fits both sites together but explicitly anchors the harmonization to a chosen reference site. For more details, see Jodoin et al. (2025), *ComBAT Harmonization for Diffusion MRI: Challenges and Best Practices* (Nature Scientific Reports:41508). |
 
 Common options for both methods:
 - age filtering (`--limit_age_range`)
@@ -99,38 +101,38 @@ Run the bundled example once to check your setup:
 
 ```bash
 # From the project root
-combat_quick \
+combat_pipeline \
     src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-    src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-    --method clinic \
+    src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+    --method clinical \
     --out_dir quickstart_demo/
 ```
 
 This produces:
-- a fitted model (`quickstart_demo/ShamCamCAN-CamCAN.md.clinic.model.csv`)
-- harmonized data (`quickstart_demo/ShamCamCAN.md.clinic.csv.gz`)
+- a fitted model (`quickstart_demo/ModifiedCamCAN-CamCAN.md.clinical.model.csv`)
+- harmonized data (`quickstart_demo/ModifiedCamCAN.md.clinical.csv.gz`)
 - QC metrics and figures inside `quickstart_demo/`
 
 ## Main scripts
 
 ### Combined workflow
 
-`combat_quick` runs the full pipeline in sequence (fit → apply → QC → figures) and logs
+`combat_pipeline` runs the full pipeline in sequence (fit → apply → QC → figures) and logs
 each spawned command.
 
 - `ref_data` *(required)*: reference-site CSV (`*.raw.csv[.gz]`).
 - `mov_data` *(required)*: moving-site CSV to harmonize.
-- `--method {clinic,pairwise}` (default `clinic`): harmonization strategy.
-- `--degree` (default 2 for clinic, 1 for pairwise when omitted): polynomial degree for age.
+- `--method {clinical,pairwise}` (default `clinical`): harmonization strategy.
+- `--degree` (default 2 for clinical, 1 for pairwise when omitted): polynomial degree for age.
 - `--limit_age_range` (default disabled): drop reference subjects outside the moving age range.
 - `--ignore_sex` (default disabled): remove sex from the covariate model.
 - `--ignore_handedness` (default disabled): remove handedness from the model.
 - `--no_empirical_bayes` (default disabled): skip empirical Bayes estimation.
 - `--robust` (default disabled, not implemented): placeholder for robust mode.
-- `--regul_ref` *(clinic only, default 0)*: ridge penalty applied to reference regression.
-- `--regul_mov` *(clinic only, default -1; pairwise falls back to 0)*: moving-site penalty or auto-tuning.
-- `--nu` *(clinic only, default 5)*: variance hyperparameter for the moving site.
-- `--tau` *(clinic only, default 2)*: covariate hyperparameter for the moving site.
+- `--regul_ref` *(clinical only, default 0)*: ridge penalty applied to reference regression.
+- `--regul_mov` *(clinical only, default -1; pairwise falls back to 0)*: moving-site penalty or auto-tuning.
+- `--nu` *(clinical only, default 5)*: variance hyperparameter for the moving site.
+- `--tau` *(clinical only, default 2)*: covariate hyperparameter for the moving site.
 - `--bundles` (default `mni_IIT_mask_skeletonFA` in plots): bundle subset for figures (`all` for every bundle).
 - `--degree_qc` (default 0): QC model degree override (0 reuses the harmonization degree).
 - `--out_dir` (default `./`): root directory for models, results, and figures.
@@ -142,29 +144,29 @@ each spawned command.
 Example:
 
 ```bash
-combat_quick src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-    src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-    --method clinic \
-    --out_dir results/clinic_pipeline/
+combat_pipeline src/clinical_combat/data/CamCAN.md.raw.csv.gz \
+    src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+    --method clinical \
+    --out_dir results/clinical_pipeline/
 ```
 
 ### Model fitting
 
-`combat_quick_fit` estimates harmonization parameters and writes a `*.model.csv`.
+`combat_fit` estimates harmonization parameters and writes a `*.model.csv`.
 
 - `ref_data` *(required)*: reference-site CSV.
 - `mov_data` *(required)*: moving-site CSV.
-- `--method {clinic,pairwise}` (default `clinic`): harmonization variant.
-- `--degree` (default 2 for clinic, 1 for pairwise when omitted): polynomial age order.
+- `--method {clinical,pairwise}` (default `clinical`): harmonization variant.
+- `--degree` (default 2 for clinical, 1 for pairwise when omitted): polynomial age order.
 - `--limit_age_range` (default disabled): match reference ages to the moving-site range.
 - `--ignore_sex` (default disabled): drop sex from the design matrix.
 - `--ignore_handedness` (default disabled): drop handedness from the design matrix.
 - `--no_empirical_bayes` (default disabled): rely on classical estimates for alpha/sigma.
 - `--ignore_bundles` (default `left_ventricle right_ventricle`): bundles removed prior to fitting.
-- `--regul_ref` *(clinic only, default 0)*: ridge penalty on the reference regression.
-- `--regul_mov` *(clinic only, default -1; pairwise falls back to 0)*: moving-site penalty or auto-tuning.
-- `--nu` *(clinic only, default 5)*: variance hyperparameter for the moving site.
-- `--tau` *(clinic only, default 2)*: covariate hyperparameter for the moving site.
+- `--regul_ref` *(clinical only, default 0)*: ridge penalty on the reference regression.
+- `--regul_mov` *(clinical only, default -1; pairwise falls back to 0)*: moving-site penalty or auto-tuning.
+- `--nu` *(clinical only, default 5)*: variance hyperparameter for the moving site.
+- `--tau` *(clinical only, default 2)*: covariate hyperparameter for the moving site.
 - `--out_dir` (default `./`): directory for the generated model.
 - `--output_model_filename` (default auto-generated): custom model filename.
 - `--verbose/-v` (default `WARNING`): logging verbosity.
@@ -173,19 +175,19 @@ combat_quick src/clinical_combat/data/CamCAN.md.raw.csv.gz \
 Example:
 
 ```bash
-combat_quick_fit src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-    src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
+combat_fit src/clinical_combat/data/CamCAN.md.raw.csv.gz \
+    src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
     --method pairwise \
     --out_dir models/pairwise/
 ```
 
 ### Model application
 
-`combat_quick_apply` consumes a moving-site CSV and a saved `*.model.csv`, then produces
+`combat_apply` consumes a moving-site CSV and a saved `*.model.csv`, then produces
 harmonized measurements (`site.metric.method.csv.gz` by default).
 
 - `mov_data` *(required)*: moving-site CSV to transform.
-- `model` *(required)*: harmonization model generated by `combat_quick_fit` or `combat_quick`.
+- `model` *(required)*: harmonization model generated by `combat_fit` or `combat_pipeline`.
 - `--out_dir` (default `./`): directory for the harmonized output.
 - `--output_results_filename` (default auto-generated): custom output filename.
 - `--verbose/-v` (default `WARNING`): logging level.
@@ -194,14 +196,14 @@ harmonized measurements (`site.metric.method.csv.gz` by default).
 Example:
 
 ```bash
-combat_quick_apply src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-    models/pairwise/ShamCamCAN-CamCAN.md.pairwise.model.csv \
+combat_apply src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+    models/pairwise/ModifiedCamCAN-CamCAN.md.pairwise.model.csv \
     --out_dir harmonized/pairwise/
 ```
 
 ### Evaluation and quality control (QC) to assess the alignment of the harmonized population.
 
-- `combat_quick_QC`: reports Bhattacharyya distances between reference and moving datasets.
+- `combat_QC`: reports Bhattacharyya distances between reference and moving datasets.
   - `ref_data` *(required)*: reference-site CSV (HC subjects only are used).
   - `mov_data` *(required)*: moving-site CSV.
   - `model` *(required)*: harmonization model (`*.model.csv`).
@@ -213,9 +215,9 @@ combat_quick_apply src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
   - `--verbose/-v` (default `WARNING`), `--overwrite/-f` (default disabled).
   - Example:
     ```bash
-    combat_quick_QC src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-        src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-        models/pairwise/ShamCamCAN-CamCAN.md.pairwise.model.csv \
+    combat_QC src/clinical_combat/data/CamCAN.md.raw.csv.gz \
+        src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+        models/pairwise/ModifiedCamCAN-CamCAN.md.pairwise.model.csv \
         --out_dir qc_reports/
     ```
 
@@ -236,8 +238,8 @@ Common helper flags: each script accepts `-v/--verbose` (default `WARNING`) and 
   - Example:
     ```bash
     combat_visualize_data src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-        src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-        harmonized/pairwise/ShamCamCAN.md.pairwise.csv.gz \
+        src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+        harmonized/pairwise/ModifiedCamCAN.md.pairwise.harmonized.csv.gz \
         --bundles mni_AF_L mni_AF_R \
         --out_dir figures/data/
     ```
@@ -259,8 +261,8 @@ Common helper flags: each script accepts `-v/--verbose` (default `WARNING`) and 
   - Example:
     ```bash
     combat_visualize_model src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-        src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-        models/pairwise/ShamCamCAN-CamCAN.md.pairwise.model.csv \
+        src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+        models/pairwise/ModifiedCamCAN-CamCAN.md.pairwise.model.csv \
         --out_dir figures/model/ \
         --only_models
     ```
@@ -287,8 +289,8 @@ Common helper flags: each script accepts `-v/--verbose` (default `WARNING`) and 
   - Example:
     ```bash
     combat_visualize_harmonization src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-        src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-        harmonized/pairwise/ShamCamCAN.md.pairwise.csv.gz \
+        src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+        harmonized/pairwise/ModifiedCamCAN.md.pairwise.harmonized.csv.gz \
         --bundles all \
         --out_dir figures/harmonization/
     ```
@@ -310,34 +312,34 @@ Common helper flags: each script accepts `-v/--verbose` (default `WARNING`) and 
    ```
 2. **Fit a harmonization model**
    ```bash
-   combat_quick_fit \
+   combat_fit \
        src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-       src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-       --method clinic \
+       src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+       --method clinical \
        --out_dir out/models/
    ```
 3. **Apply the harmonization**
    ```bash
-   combat_quick_apply \
-       src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-       out/models/ShamCamCAN-CamCAN.md.clinic.model.csv \
+   combat_apply \
+       src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+       out/models/ModifiedCamCAN-CamCAN.md.clinical.model.csv \
        --out_dir out/harmonized/
    ```
 4. **Quality control**
    ```bash
-   combat_quick_QC \
+   combat_QC \
        src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-       src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-       out/models/ShamCamCAN-CamCAN.md.clinic.model.csv
+       src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+       out/models/ModifiedCamCAN-CamCAN.md.clinical.model.csv
    ```
 5. **Visualize the results**
    ```bash
    combat_visualize_harmonization \
        src/clinical_combat/data/CamCAN.md.raw.csv.gz \
-       src/clinical_combat/data/ShamCamCAN.md.raw.csv.gz \
-       out/harmonized/ShamCamCAN.md.clinic.csv.gz \
+       src/clinical_combat/data/ModifiedCamCAN.md.raw.csv.gz \
+       out/harmonized/ModifiedCamCAN.md.clinical.csv.gz \
        --out_dir out/figures/
    ```
 
-`combat_quick` can execute steps 2 through 5 in sequence and logs each
+`combat_pipeline` can execute steps 2 through 5 in sequence and logs each
 invoked command.

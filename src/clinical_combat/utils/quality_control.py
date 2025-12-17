@@ -10,7 +10,7 @@ def leave_one_out_error(ref_data, mov_data, QC):
     Args:
         ref_data (pd.DataFrame): Reference data.
         mov_data (pd.DataFrame): Data to be corrected.
-        QC (QuickCombat): QuickCombat object.
+        QC (Combat): Combat object.
 
     Returns:
         error (np.float32): Mean squared error of the leave-one-out error.
@@ -33,12 +33,12 @@ def leave_one_out_error(ref_data, mov_data, QC):
 
 def find_mov_regul(ref_data, mov_data, QC):
     """
-    Find the optimal regularization term for QuickCombat.
+    Find the optimal regularization term for Combat.
 
     Args:
         ref_data (pd.DataFrame): Reference data.
         mov_data (pd.DataFrame): Data to be corrected.
-        QC (QuickCombat): QuickCombat object.
+        QC (Combat): Combat object.
 
     Returns:
         reg (np.float32): Optimal regularization term.
@@ -54,7 +54,7 @@ def find_mov_regul(ref_data, mov_data, QC):
 
     plt.plot(regs, errors)
     plt.scatter(regs, errors)
-    plt.title("QuickCombat Fitting Error\nAll Bundles")
+    plt.title("Combat Fitting Error\nAll Bundles")
     plt.xlabel("Regularization Term")
     plt.ylabel("MSE")
     plt.show()

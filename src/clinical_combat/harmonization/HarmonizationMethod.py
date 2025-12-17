@@ -5,7 +5,7 @@ import logging
 import numpy as np
 
 
-class QuickHarmonizationMethod:
+class HarmonizationMethod:
     """
     Abstract class.
     """

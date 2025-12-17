@@ -4,7 +4,7 @@
 Script to compute and apply the transfer function from
 a moving site to a reference site.
 
-This script calls combat_quick_fit, combat_quick_apply,
+This script calls combat_fit, combat_apply,
 combat_visualize_model and combat_visualize_harmonization.
 The exact commands are printed in the terminal.
 
@@ -12,9 +12,9 @@ Harmonization methods:
     pairwise:
         uses both moving and reference data to fit the
         covariates regression parameters (Beta_mov).
-        Fortin et al., 2017 method,
-        see https://pubmed.ncbi.nlm.nih.gov/28826946/
-    clinic (default):
+        Jodoin et al., 2025 method,
+        see https://www.nature.com/articles/s41598-025-25400-x
+    clinical (default):
         uses a priori from the reference site to fit the moving site
         (Beta_mov, variance)
 
@@ -24,11 +24,11 @@ NOTE: the harmonization parameters (regul, degree, nu, tau) are preset
       it's renamed CamCAN in the figures.
 
 Examples:
-# Harmonized with the Clinic method with un polynomial degree of 2
-combat_quick reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
+# Harmonized with the Clinical method with un polynomial degree of 2
+combat_pipeline reference_site.raw.csv.gz moving_site.raw.csv.gz --degree 2
 
 # Harmonized with the Pairwise method (i.e. Fortin et al., (2017) method)
-combat_quick reference_site.raw.csv.gz moving_site.raw.csv.gz --method pairwise
+combat_pipeline reference_site.raw.csv.gz moving_site.raw.csv.gz --method pairwise
 
 """
 import argparse
@@ -64,8 +64,8 @@ def _build_arg_parser():
                         "['ref_site-moving-site.metric_name.method.harmonized.csv.gz']")
 
     p.add_argument("-m", "--method",
-                   default="clinic",
-                   choices=["pairwise", "clinic"],
+                   default="clinical",
+                   choices=["pairwise", "clinical"],
                    help="Harmonization method.")
     p.add_argument("--ignore_sex",
                    action="store_true",
@@ -96,21 +96,21 @@ def _build_arg_parser():
                    help="Regularization parameter for "
                         "the moving site data. Set to '-1' for "
                         "automatic tuning "
-                        "[default=0 for pairwise; -1 for clinic]")
+                        "[default=0 for pairwise; -1 for clinical]")
     p.add_argument("--degree",
                    type=int,
                    help="Degree of the polynomial fit in Combat. "
-                        "[default=1 for pairwise; 2 for clinic].")
+                        "[default=1 for pairwise; 2 for clinical].")
     p.add_argument("--nu",
                    type=float,
                    default=5,
-                   help="Combat Clinic hyperparameter for "
+                   help="Combat Clinical hyperparameter for "
                         "the standard deviation estimation of the moving "
                         "site data. It must be >=0. [%(default)s]")
     p.add_argument("--tau",
                    type=float,
                    default=2,
-                   help="Combat Clinic hyperparameter for "
+                   help="Combat Clinical hyperparameter for "
                         "the covariate fit of the moving site data. "
                         "It must be >= 1. [%(default)s]")
     p.add_argument("--bundles",
@@ -192,7 +192,7 @@ def main():
     )
     print("\n     Fit model : ", args.output_model_filename)
     cmd = (
-        "combat_quick_fit"
+        "combat_fit"
         + " "
         + args.ref_data
         + " "
@@ -235,7 +235,7 @@ def main():
     # Apply
     print("\n     Harmonized site : ", args.output_results_filename)
     cmd = (
-        "combat_quick_apply"
+        "combat_apply"
         + " "
         + args.mov_data
         + " "
@@ -306,7 +306,7 @@ def main():
     print("\n   Raw data ")
 
     cmd = (
-        "combat_quick_QC"
+        "combat_QC"
         + " "
         + args.ref_data
         + " "
@@ -328,7 +328,7 @@ def main():
 
     print("\n   Harmonized data ")
     cmd = (
-        "combat_quick_QC"
+        "combat_QC"
         + " "
         + args.ref_data
         + " "

@@ -6,19 +6,21 @@ Script to compute the transfer function from a moving site to a reference site.
 Harmonization methods:
     pairwise: uses both moving and reference data to fit the covariate
              regression parameters (Beta_mov).
-    clinic: uses a priori from the reference site to fit the moving site
+             Jodoin et al., 2025 method,
+             see https://www.nature.com/articles/s41598-025-25400-x
+    clinical: uses a priori from the reference site to fit the moving site
             (Beta_mov, variance)
 
 Examples:
 # Use the pairwise method to harmonize the moving site data to
 # the reference site data (linear)
-combat_quick_fit reference_site.raw.csv.gz moving_site.raw.csv.gz \
+combat_fit reference_site.raw.csv.gz moving_site.raw.csv.gz \
                  --method pairwise
 
-# Use the clinic method to harmonize the moving site data to
+# Use the clinical method to harmonize the moving site data to
 # the reference site data (non-linear)
-combat_quick_fit reference_site.raw.csv.gz moving_site.raw.csv.gz \
-                 --method clinic
+combat_fit reference_site.raw.csv.gz moving_site.raw.csv.gz \
+                 --method clinical
 """
 
 import argparse
@@ -52,8 +54,8 @@ def _build_arg_parser():
                    help="Output CSV model filename."
                         "['ref_site-moving-site.model.metric_name.method.model.csv']")
     p.add_argument("-m", "--method",
-                   default="clinic",
-                   choices=["pairwise", "clinic"],
+                   default="clinical",
+                   choices=["pairwise", "clinical"],
                    help="Harmonization method.")
     p.add_argument("--ignore_sex",
                    action="store_true",
@@ -83,22 +85,22 @@ def _build_arg_parser():
                    help="Regularization parameter for"
                         " the moving site data. "
                         "Set to '-1' for automatic tuning "
-                        "[default=0 for pairwise; -1 for clinic]")
+                        "[default=0 for pairwise; -1 for clinical]")
     p.add_argument("--degree",
                    type=int,
                    help="Degree of the polynomial fit in Combat."
                         " Default is linear [default=1 for pairwise;"
-                        " 2 for clinic].")
+                        " 2 for clinical].")
     p.add_argument("--nu",
                    type=float,
                    default=5,
-                   help="Combat Clinic hyperparameter for"
+                   help="Combat Clinical hyperparameter for"
                         " the standard deviation estimation of the moving "
                         "site data. It must be >=0.  [%(default)s]")
     p.add_argument("--tau",
                    type=float,
                    default=2,
-                   help="Combat Clinic hyperparameter for "
+                   help="Combat Clinical hyperparameter for "
                         "the covariate fit of the moving site data. "
                         "It must be >= 1. [%(default)s]")
     p.add_argument("--ignore_bundles",

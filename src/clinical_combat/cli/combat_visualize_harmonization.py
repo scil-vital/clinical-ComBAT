@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Visualizes reference site (target) and moving site before (raw) and after (combat) harmonization.
-To view several sites at once, use combat_quick_visualize.
+To view several sites at once, use combat_visualize.
 
 By default, the script displays the mean value (mean) and standard deviations (SD) per percentile,
 per metric and for the AF left bundle (AF_L) for the reference and moving sites before (raw)

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Apply a precomputed harmonization model using combat_quick_fit to a site data.
+Apply a precomputed harmonization model using combat_fit to a site data.
 
 Example:
-combat_quick_apply moving_site.raw.csv.gz moving_site.metric.method.model.csv
+combat_apply moving_site.raw.csv.gz moving_site.metric.method.model.csv
 
 
 """
@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from clinical_combat.harmonization import from_model_filename
-from clinical_combat.utils.combatio import save_quickcombat_data_to_csv
+from clinical_combat.utils.combatio import save_combat_data_to_csv
 from clinical_combat.utils.scilpy_utils import (
     add_overwrite_arg,
     add_verbose_arg,
@@ -86,7 +86,7 @@ def main():
     assert_outputs_exist(parser, args, output_filename, check_dir_exists=True)
 
     logging.info("Saving file: %s", output_filename)
-    save_quickcombat_data_to_csv(
+    save_combat_data_to_csv(
         mov_data,
         y_harm,
         QC.bundle_names,
