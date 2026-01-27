@@ -20,6 +20,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 from clinical_combat.utils.scilpy_utils import assert_outputs_exist
+from clinical_combat.utils.plotjson import PlotJson
 
 matplotlib.use("Agg")
 warnings.filterwarnings("ignore")
@@ -39,6 +40,7 @@ def initiate_joint_marginal_plot(
     hist_hur_order=None,
     hist_legend=False,
     legend_title="Sites",
+    plot_json: PlotJson = None
 ):
     """
     Initiate a joint plot with marginal histogram.
@@ -226,6 +228,7 @@ def add_scatterplot_to_curve(
     marker_size=30,
     linewidth=0,
     legend=True,
+    plot_json: PlotJson = None
 ):
     """
     Adds points corresponding to specific data to the joint plot.
@@ -237,7 +240,7 @@ def add_scatterplot_to_curve(
         x (str): Column name for x-axis
         y (str): Column name for y-axis
         hue (str): Column name for hue color
-        hur_order (list): List of hue order for data (default: None)
+        hue_order (list): List of hue order for data (default: None)
         alpha (float): Transparency (default: 0.5)
         marker (str): Marker shape (default: o)
         marker_size (int): Marker size (default: 30)
@@ -265,6 +268,25 @@ def add_scatterplot_to_curve(
     )
     if legend:
         ax.legend()
+
+    if plot_json is not None:
+        plot_json.add_plot(
+            plot_name="scatterplot_{}_{}".format(x, y),
+            plot_class=PlotJson.Type.SCATTER,
+            data_x=df[x].tolist(),
+            data_y=df[y].tolist(),
+            hue=df[hue].tolist() if hue is not None else None,
+            x_label=x,
+            y_label=y,
+            hue_label=hue,
+            hue_order=hue_order,
+            alpha=alpha,
+            marker=marker,
+            marker_size=marker_size,
+            linewidth=linewidth,
+            palette=palette,
+            legend=legend
+        )
 
     return ax
 
@@ -295,6 +317,7 @@ def add_models_to_plot(
     lightness=1,
     line_width=2.5,
     line_style="--",
+    plot_json: PlotJson = None
 ):
     x = np.arange(age_min, age_max, 1)
     # Set the color for regression line
@@ -311,6 +334,25 @@ def add_models_to_plot(
         linewidth=line_width,
         linestyle=line_style,
     )
+
+    if plot_json is not None:
+        plot_json.add_plot(
+            plot_name="regression_{}".format("moving" if moving_site else "reference"),
+            bundle=bundle,
+            metric=df_model.model_params["name"],
+            site=df_model.model_params["mov_site"] if moving_site else df_model.model_params["ref_site"],
+            plot_class=PlotJson.Type.LINE,
+            data_x=x.tolist(),
+            data_y=y.tolist(),
+            x_label="age",
+            y_label=bundle,
+            model_name=df_model.model_params["name"],
+            moving_site=moving_site,
+            color=color,
+            lightness=lightness,
+            line_width=line_width,
+            line_style=line_style
+        )
 
     return ax
 
@@ -610,6 +652,7 @@ def update_global_figure_style_and_save(
     dpi=300,
     outpath=None,
     outname=None,
+    plot_json: PlotJson = None
 ):
     """
     Update figure for x and y axis labels, legend (position change) and adjust final figure size.

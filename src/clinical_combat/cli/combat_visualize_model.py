@@ -26,6 +26,7 @@ combat_visualize_model reference_site.raw.csv.gz moving_site.raw.csv.gz \
 
 import argparse
 import logging
+from os.path import join
 
 import matplotlib
 import numpy as np
@@ -45,7 +46,7 @@ from clinical_combat.visualization.plots import (
 from clinical_combat.visualization.viz import (custom_palette,
                                                generate_query,
                                                line_style)
-
+from clinical_combat.utils.plotjson import PlotJson, PlotJsonAggregator
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -186,6 +187,8 @@ def main():
     if mov_site != df.site.unique()[1]:
         raise ValueError("Model site and moving data site don't match.")
 
+    plots = PlotJsonAggregator()
+
     # Generate plots for each bundle
     for bundle in args.bundles:
         logging.info("Processing: %s", bundle)
@@ -196,6 +199,8 @@ def main():
         else:
             ymin = df_vals["mean"].min() - df_vals["mean"].min() * 0.05
             ymax = df_vals["mean"].max() + df_vals["mean"].max() * 0.05
+
+        plot_json = PlotJson(bundle=bundle, metric=metric)
 
         # Initialize the joint plot
         g, ax = initiate_joint_marginal_plot(
@@ -209,6 +214,7 @@ def main():
             xlim=(args.xlim[0], args.xlim[1]),
             hist_hur_order=df_vals.input.unique().tolist(),
             hist_palette=curr_palette,
+            plot_json=plot_json
         )
 
         # Add data to build figure frame (white)
@@ -222,6 +228,7 @@ def main():
             alpha=0,
             palette=curr_palette,
             legend=False,
+            plot_json=plot_json
         )
 
         # Add regression line from models to the plot
@@ -239,6 +246,7 @@ def main():
             lightness=args.lightness,
             line_width=args.line_width,
             line_style=line_style[0],
+            plot_json=plot_json
         )
 
         # Moving regression curve
@@ -253,6 +261,7 @@ def main():
             lightness=args.lightness,
             line_width=args.line_width,
             line_style=line_style[0],
+            plot_json=plot_json
         )
 
         # Add scatter point and regression line from models
@@ -268,6 +277,7 @@ def main():
                 alpha=0.8,
                 palette=curr_palette,
                 legend=False,
+                plot_json=plot_json
             )
 
             if not args.hide_disease:
@@ -285,6 +295,7 @@ def main():
                     hue_order=all_disease,
                     legend="auto",
                     palette=custom_palette[::-1][: len(all_disease)],
+                    plot_json=plot_json
                 )
 
         # Add legend to the plot
@@ -318,7 +329,21 @@ def main():
             title=" \n" + " Data Models - ",
             outpath=args.out_dir,
             outname=args.outname,
+            plot_json=plot_json
         )
+
+        plots.add_plot_json(plot_json)
+    
+    # Save all plots data to a single JSON file
+    json_filename = "{prefix}_{method}_{metric}_{bundle}{suffix}.json".format(
+        prefix=prefix,
+        method=QC.model_params["name"].replace("_", ""),
+        metric=metric.replace("_", ""),
+        bundle=bundle.replace("_", ""),
+        suffix=suffix,
+    )
+    out_json_path = join(args.out_dir, json_filename)
+    plots.save_aggregated_json(out_json_path)
 
 
 if __name__ == "__main__":
