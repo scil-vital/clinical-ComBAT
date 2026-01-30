@@ -335,7 +335,7 @@ def main():
         plots.add_plot_json(plot_json)
     
     # Save all plots data to a single JSON file
-    json_filename = "{prefix}_{method}_{metric}_{bundle}{suffix}.json".format(
+    json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
         prefix=prefix,
         method=QC.model_params["name"].replace("_", ""),
         metric=metric.replace("_", ""),

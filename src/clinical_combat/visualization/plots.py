@@ -111,6 +111,8 @@ def add_reference_percentiles_to_curve(
     line_style="solid",
     set_color="#000000",
     add_grid=False,
+    moving_site=False,
+    plot_json: PlotJson = None
 ):
     """
     Adds percentile data to the joint plot for the reference site.
@@ -137,6 +139,23 @@ def add_reference_percentiles_to_curve(
             linewidth=set_line_widths[curr_percentile_idx],
             label=str(curr_percentile).zfill(2) + "th percentile",
         )
+
+        if plot_json is not None:
+            site_str = "moving" if moving_site else "reference"
+            plot_json.add_plot(
+                plot_group=f"{site_str}_percentiles",
+                plot_name=f"{site_str}_percentile_{curr_percentile}",
+                plot_class=PlotJson.Type.LINE,
+                data_x=ref_age,
+                data_y=ref_percentiles[:, curr_percentile_idx].tolist(),
+                x_label="age",
+                y_label="value",
+                percentile=curr_percentile,
+                color=set_color,
+                line_style=line_style,
+                line_width=set_line_widths[curr_percentile_idx]
+            )
+
     ax.fill_between(
         ref_age,
         ref_percentiles[:, 0],
@@ -173,6 +192,7 @@ def add_site_curve_to_reference_curve(
     add_grid=False,
     alpha=0.2,
     linestyle="-",
+    plot_json: PlotJson = None
 ):
     """
     Adds percentile data to the joint plot for the reference site.
@@ -420,6 +440,7 @@ def add_errorbars_to_plot(
     alpha=0.4,
     line_width=0,
     linestyle="none",
+    plot_json: PlotJson = None
 ):
     """
     Adds error bars to the plot. Only available for scatter plots.

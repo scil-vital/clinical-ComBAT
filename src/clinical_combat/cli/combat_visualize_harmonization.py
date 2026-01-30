@@ -64,6 +64,7 @@ import argparse
 import logging
 import random
 from itertools import product
+from os.path import join
 
 import numpy as np
 import pandas as pd
@@ -87,6 +88,8 @@ from clinical_combat.visualization.viz import (
     line_style,
     viz_identify_valid_sites,
 )
+
+from clinical_combat.utils.plotjson import PlotJson, PlotJsonAggregator
 
 
 def _build_arg_parser():
@@ -288,6 +291,8 @@ def main():
         args.y_axis_percentile[1]
     )
 
+    plots = PlotJsonAggregator()
+
     for bundle in args.bundles:
         logging.info("Processing: %s", bundle)
         df_vals = df.query(
@@ -305,6 +310,8 @@ def main():
         if len(df_vals) == 0:
             logging.info("No data found for metric %s and bundle %s.", metric, bundle)
             continue
+
+        plot_json = PlotJson(bundle=bundle, metric=metric)
 
         # Extract reference site data for bundle
         df_ref_bundle = df.query(
@@ -369,6 +376,7 @@ def main():
                 marginal_hist=args.display_marginal_hist,
                 hist_hur_order=valid_site_list,
                 hist_palette=custom_palette[: len(valid_site_list)],
+                plot_json=plot_json
             )
 
             # Reference data
@@ -418,6 +426,7 @@ def main():
                         label_site=label,
                         ylim=(ymin, ymax),
                         color=custom_palette[0],
+                        plot_json=plot_json
                     )
             else:
                 # The percentiles are displayed on the plot
@@ -440,6 +449,8 @@ def main():
                     reference_percentiles,
                     args.percentiles,
                     args.line_widths,
+                    moving_site=False,
+                    plot_json=plot_json
                 )
 
             # Moving site data
@@ -474,6 +485,7 @@ def main():
                         hue_order=moving_site,
                         alpha=0.8,
                         palette=[moving_palette],
+                        plot_json=plot_json
                     )
 
                 # Add error bars to the plot for post harmonization figures
@@ -497,6 +509,7 @@ def main():
                         error_data,
                         [moving_palette],
                         label=moving_site[0],
+                        plot_json=plot_json
                     )
 
             # Add site data CURVES to plot - Default
@@ -548,6 +561,7 @@ def main():
                             label_site=label,
                             ylim=(ymin, ymax),
                             color=moving_palette,
+                            plot_json=plot_json
                         )
 
                 else:
@@ -571,6 +585,8 @@ def main():
                         args.line_widths,
                         set_color=moving_palette,
                         line_style=moving_linestyle,
+                        moving_site=True,
+                        plot_json=plot_json
                     )
 
             # Add disease scatterplot to Curve plot
@@ -604,6 +620,7 @@ def main():
                     hue_order=args.diseases,
                     legend="auto",
                     palette=custom_palette[::-1][: len(args.diseases)],
+                    plot_json=plot_json
                 )
 
             # Save figure
@@ -633,7 +650,19 @@ def main():
                 title=" \n" + " Age Curve - ",
                 outpath=args.out_dir,
                 outname=args.outname,
+                plot_json=plot_json
             )
+
+            plots.add_plot_json(plot_json)
+    
+    json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
+        prefix=prefix,
+        method=harmonization,
+        metric=metric.replace("_", ""),
+        suffix=suffix
+    )
+    out_json_path = join(args.out_dir, json_filename)
+    plots.save_aggregated_json(out_json_path)
 
 
 if __name__ == "__main__":

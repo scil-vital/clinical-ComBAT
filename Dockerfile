@@ -35,6 +35,6 @@ RUN uv pip install --upgrade pip setuptools==75.1.0 wheel setuptools_scm kiwisol
 # Install clinical-ComBAT
 WORKDIR /clinical-ComBAT
 COPY . .
-RUN uv pip install -e . --no-build-isolation
+RUN uv pip install .
 
 WORKDIR /

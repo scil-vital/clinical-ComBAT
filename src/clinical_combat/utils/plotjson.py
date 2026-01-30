@@ -18,7 +18,7 @@ class PlotJson:
         self.metric = metric
         self.data = {}
 
-    def add_plot(self, plot_name, plot_class: Type, **kwargs):
+    def add_plot(self, plot_name: str, plot_class: Type, plot_group: str = None, **kwargs):
         """Add data for a specific plot.
 
         Args:
@@ -26,7 +26,13 @@ class PlotJson:
             plot_data (dict): The data associated with the plot.
         """
         kwargs['plot_class'] = plot_class.value
-        self.data[plot_name] = kwargs
+
+        if plot_group is not None:
+            if plot_group not in self.data:
+                self.data[plot_group] = {}
+            self.data[plot_group][plot_name] = kwargs
+        else:
+            self.data[plot_name] = kwargs
 
     def to_json(self):
         """Convert the stored plot data to a JSON-compatible dictionary.
