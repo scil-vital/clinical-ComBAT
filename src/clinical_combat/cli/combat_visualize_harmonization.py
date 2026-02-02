@@ -111,6 +111,9 @@ def _build_arg_parser():
                      help="Filename to save figure.")
     out.add_argument("--add_suffix",
                      help="Add suffix to figure title and output PNG filename.")
+    out.add_argument("--save_curves_json",
+                     action="store_true",
+                     help="Save percentiles curves data in JSON format for downstream visualization.")
 
     wdw = p.add_argument_group(title="Window options for the "
                                      "moving average mean and standard "
@@ -648,16 +651,17 @@ def main():
 
             plots.add_plot_json(plot_json)
     
-    harmonization_methods = "_".join([m for m in np.unique(df.harmonization) if m != "raw"])
+    if args.save_curves_json:
+        harmonization_methods = "_".join([m for m in np.unique(df.harmonization) if m != "raw"])
 
-    json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
-        prefix=prefix,
-        method=harmonization_methods,
-        metric=metric.replace("_", ""),
-        suffix=suffix
-    )
-    out_json_path = join(args.out_dir, json_filename)
-    plots.save_aggregated_json(out_json_path)
+        json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
+            prefix=prefix,
+            method=harmonization_methods,
+            metric=metric.replace("_", ""),
+            suffix=suffix
+        )
+        out_json_path = join(args.out_dir, json_filename)
+        plots.save_aggregated_json(out_json_path)
 
 
 if __name__ == "__main__":

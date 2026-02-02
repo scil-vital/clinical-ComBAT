@@ -75,6 +75,9 @@ def _build_arg_parser():
     out.add_argument("--add_suffix",
                      help="Add suffix to figure title and "
                           " output PNG filename.")
+    out.add_argument("--save_curves_json",
+                     action="store_true",
+                     help="Save model regression curves data in JSON format for downstream visualization.")
 
     viz = p.add_argument_group(title="Display options")
     viz.add_argument("--hide_disease",
@@ -329,14 +332,15 @@ def main():
 
         plots.add_plot_json(plot_json)
     
-    # Save all plots data to a single JSON file
-    json_filename = "{prefix}_{method}_{metric}.json".format(
-        prefix=prefix,
-        method=QC.model_params["name"].replace("_", ""),
-        metric=metric.replace("_", "")
-    )
-    out_json_path = join(args.out_dir, json_filename)
-    plots.save_aggregated_json(out_json_path)
+    if args.save_curves_json:
+        # Save all plots data to a single JSON file
+        json_filename = "{prefix}_{method}_{metric}.json".format(
+            prefix=prefix,
+            method=QC.model_params["name"].replace("_", ""),
+            metric=metric.replace("_", "")
+        )
+        out_json_path = join(args.out_dir, json_filename)
+        plots.save_aggregated_json(out_json_path)
 
 
 if __name__ == "__main__":

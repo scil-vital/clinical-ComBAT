@@ -62,6 +62,10 @@ def _build_arg_parser():
                    default="",
                    help="Output CSV of the harmonized data filename. "
                         "['ref_site-moving-site.metric_name.method.harmonized.csv.gz']")
+    
+    p.add_argument("--save_curves_json",
+                   action="store_true",
+                   help="Save percentiles and regression curves data in JSON format for downstream visualization.")
 
     p.add_argument("-m", "--method",
                    default="clinical",
@@ -274,6 +278,8 @@ def main():
         + " -v "
         + str(args.verbose)
     )
+    if args.save_curves_json:
+        cmd += " --save_curves_json"
     if args.overwrite:
         cmd += " -f"
     logging.info(cmd)
@@ -296,6 +302,8 @@ def main():
         + " -v "
         + str(args.verbose)
     )
+    if args.save_curves_json:
+        cmd += " --save_curves_json"
     if args.overwrite:
         cmd += " -f"
     logging.info(cmd)
