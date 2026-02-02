@@ -73,7 +73,6 @@ def _build_arg_parser():
                      help="Filename to save figure. "
                           "['movSite'-'refSite'_'modelName'_model_'metric'_'bundle'.png]")
     out.add_argument("--add_suffix",
-                     default="",
                      help="Add suffix to figure title and "
                           " output PNG filename.")
 
@@ -196,7 +195,7 @@ def main():
     )
 
     suffix = ""
-    if args.add_suffix is not None and args.add_suffix != "":
+    if args.add_suffix is not None:
         suffix += "_" + args.add_suffix
 
     # Generate plots for each bundle

@@ -648,11 +648,11 @@ def main():
 
             plots.add_plot_json(plot_json)
     
-    method = "_".join([m for m in np.unique(df.harmonization) if m != "raw"])
+    harmonization_methods = "_".join([m for m in np.unique(df.harmonization) if m != "raw"])
 
     json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
         prefix=prefix,
-        method=method,
+        method=harmonization_methods,
         metric=metric.replace("_", ""),
         suffix=suffix
     )

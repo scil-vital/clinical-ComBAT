@@ -22,15 +22,32 @@ class PlotJson:
         self.metric = metric
         self.data = {}
 
-    def add_plot(self, plot_name, plot_class: Type, **kwargs):
+    def add_plot(
+        self,
+        plot_name,
+        plot_class: Type,
+        data_x: list,
+        data_y: list,
+        x_label: str = "",
+        y_label: str = "",
+        **kwargs
+    ):
         """Add data for a specific plot.
 
         Args:
             plot_name (str): The name of the plot.
             plot_class (Type): The type of the plot.
+            data_x (list): The data for the x-axis.
+            data_y (list): The data for the y-axis.
+            x_label (str, optional): The label for the x-axis. Defaults to "".
+            y_label (str, optional): The label for the y-axis. Defaults to "".
             **kwargs: Additional keyword arguments containing plot data and styling.
         """
         kwargs['plot_class'] = plot_class.value
+        kwargs['data_x'] = data_x
+        kwargs['data_y'] = data_y
+        kwargs['x_label'] = x_label
+        kwargs['y_label'] = y_label
         self.data[plot_name] = kwargs
 
     def to_json(self):
