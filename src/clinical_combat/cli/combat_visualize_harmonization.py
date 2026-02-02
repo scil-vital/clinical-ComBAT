@@ -342,6 +342,17 @@ def main():
                 df_ref_bundle["mean"].max() * (0.05 + args.increase_ylim / 100)
             )
 
+        # Set prefix to save figure
+        prefix = "AgeCurve_{}-{}".format(
+            ref_site[0], moving_site[0].replace("_", "")
+        )
+        # Set suffix to save figure
+        suffix = ""
+        if args.display_point:
+            suffix += "_scatter"
+        if args.add_suffix is not None:
+            suffix += "_" + args.add_suffix
+
         # Generate figure for each harmonization type
         for harmonization, model in product(
             np.unique(df.harmonization), np.unique(df.model)
@@ -618,17 +629,6 @@ def main():
                 )
 
             # Save figure
-            # Set prefix to save figure
-            prefix = "AgeCurve_{}-{}".format(
-                ref_site[0], moving_site[0].replace("_", "")
-            )
-            # Set suffix to save figure
-            suffix = ""
-            if args.display_point:
-                suffix += "_scatter"
-            if args.add_suffix is not None:
-                suffix += "_" + args.add_suffix
-
             # Update aspect and save figure in PNG.
             update_global_figure_style_and_save(
                 g,
@@ -648,9 +648,11 @@ def main():
 
             plots.add_plot_json(plot_json)
     
+    method = "_".join([m for m in np.unique(df.harmonization) if m != "raw"])
+
     json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
         prefix=prefix,
-        method=harmonization,
+        method=method,
         metric=metric.replace("_", ""),
         suffix=suffix
     )

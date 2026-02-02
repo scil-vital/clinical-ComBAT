@@ -73,6 +73,7 @@ def _build_arg_parser():
                      help="Filename to save figure. "
                           "['movSite'-'refSite'_'modelName'_model_'metric'_'bundle'.png]")
     out.add_argument("--add_suffix",
+                     default="",
                      help="Add suffix to figure title and "
                           " output PNG filename.")
 
@@ -189,6 +190,15 @@ def main():
 
     plots = PlotJsonAggregator()
 
+    # Set prefix to save figure
+    prefix = "DataModels_{}-{}".format(
+        ref_site.replace("_", ""), mov_site.replace("_", "")
+    )
+
+    suffix = ""
+    if args.add_suffix is not None and args.add_suffix != "":
+        suffix += "_" + args.add_suffix
+
     # Generate plots for each bundle
     for bundle in args.bundles:
         logging.info("Processing: %s", bundle)
@@ -299,15 +309,6 @@ def main():
         ax.legend(handle, [ref_site, mov_site])
 
         # Save figure
-        # Set prefix to save figure
-        prefix = "DataModels_{}-{}".format(
-            ref_site.replace("_", ""), mov_site.replace("_", "")
-        )
-
-        suffix = ""
-        if args.add_suffix is None:
-            args.add_suffix = ""
-
         # Update aspect and save figure in PNG.
         update_global_figure_style_and_save(
             g,
@@ -330,12 +331,10 @@ def main():
         plots.add_plot_json(plot_json)
     
     # Save all plots data to a single JSON file
-    json_filename = "{prefix}_{method}_{metric}{suffix}.json".format(
+    json_filename = "{prefix}_{method}_{metric}.json".format(
         prefix=prefix,
         method=QC.model_params["name"].replace("_", ""),
-        metric=metric.replace("_", ""),
-        bundle=bundle.replace("_", ""),
-        suffix=suffix,
+        metric=metric.replace("_", "")
     )
     out_json_path = join(args.out_dir, json_filename)
     plots.save_aggregated_json(out_json_path)
