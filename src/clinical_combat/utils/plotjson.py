@@ -30,6 +30,7 @@ class PlotJson:
         data_y: list,
         x_label: str = "",
         y_label: str = "",
+        plot_group: str = None,
         **kwargs
     ):
         """Add data for a specific plot.
@@ -48,7 +49,13 @@ class PlotJson:
         kwargs['data_y'] = data_y
         kwargs['x_label'] = x_label
         kwargs['y_label'] = y_label
-        self.data[plot_name] = kwargs
+
+        if plot_group is not None:
+            if plot_group not in self.data:
+                self.data[plot_group] = {}
+            self.data[plot_group][plot_name] = kwargs
+        else:
+            self.data[plot_name] = kwargs
 
     def to_json(self):
         """Convert the stored plot data to a JSON-compatible dictionary.
