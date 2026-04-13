@@ -89,6 +89,7 @@ def main():
         nu=0,
         tau=2,
     )
+    QC.assert_data(mov_data)
     QC.fit(ref_data, ref_data)
 
     metric_name = QC.model_params["metric_name"]
@@ -124,7 +125,7 @@ def main():
 
     print(
         "      Mean Bhattacharrya distance: %f (min: %f, max: %f)"
-        % (np.mean(dists), np.min(dists), np.max(dists))
+        % (np.nanmean(dists), np.nanmin(dists), np.nanmax(dists))
     )
 
     if not args.print_only:
