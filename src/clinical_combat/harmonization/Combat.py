@@ -153,12 +153,30 @@ class Combat(HarmonizationMethod):
 
         design_ref, y_ref = self.get_design_matrices(ref_data)
 
+        # Check if reference bundle data length is 1 or less
+        if len(y_ref[bundle_idx]) <= 1:
+            logging.warning(
+                "Cannot calculate Bhattacharyya distance for bundle "
+                f"{bundle_name}: insufficient reference data "
+                f"(n={len(y_ref[bundle_idx])}). Returning NaN."
+            )
+            return np.nan
+
         covariate_effect_ref = np.dot(
             design_ref[bundle_idx][1:, :].transpose(), self.beta[bundle_idx]
         )
         ref_dist = y_ref[bundle_idx] - self.alpha[bundle_idx] - covariate_effect_ref
 
         design_mov, y_mov = self.get_design_matrices(mov_data)
+
+        # Check if moving bundle data length is 1 or less
+        if len(y_mov[bundle_idx]) <= 1:
+            logging.warning(
+                "Cannot calculate Bhattacharyya distance for bundle "
+                f"{bundle_name}: insufficient moving data "
+                f"(n={len(y_mov[bundle_idx])}). Returning NaN."
+            )
+            return np.nan
         covariate_effect_mov = np.dot(
             design_mov[bundle_idx][1:, :].transpose(), self.beta[bundle_idx]
         )
